@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\AnswerOption;
 use App\Models\Question;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Seeder;
 
 class AnswerOptionSeeder extends Seeder
