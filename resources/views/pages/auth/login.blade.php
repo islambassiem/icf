@@ -10,7 +10,7 @@
             <x-portal.input name="password" type="password" :label="__('auth_ui.common.password')" required autocomplete="current-password" />
             @if (Route::has('password.request'))
                 <div class="mt-2 text-end text-sm">
-                    <x-portal.link href="{{ route('password.request') }}">{{ __('auth_ui.login.forgot') }}</x-portal.link>
+                    <x-portal.link href="{{ route('password.request') }}" wire:navigate>{{ __('auth_ui.login.forgot') }}</x-portal.link>
                 </div>
             @endif
         </div>
@@ -26,7 +26,7 @@
     @if (Route::has('register'))
         <p class="mt-7 text-center text-sm text-night/65">
             {{ __('auth_ui.login.no_account') }}
-            <x-portal.link href="{{ route('register') }}">{{ __('auth_ui.login.register') }}</x-portal.link>
+            <x-portal.link href="{{ route('register') }}" wire:navigate>{{ __('auth_ui.login.register') }}</x-portal.link>
         </p>
     @endif
 </x-layouts::auth>

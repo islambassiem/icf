@@ -10,6 +10,6 @@
     </form>
 
     <p class="mt-7 text-center text-sm">
-        <x-portal.link href="{{ route('login') }}">{{ __('auth_ui.forgot.back') }}</x-portal.link>
+        <x-portal.link href="{{ route('login') }}" wire:navigate>{{ __('auth_ui.forgot.back') }}</x-portal.link>
     </p>
 </x-layouts::auth>

@@ -12,6 +12,6 @@
 
     <p class="mt-7 text-center text-sm text-night/65">
         {{ __('auth_ui.register.have_account') }}
-        <x-portal.link href="{{ route('login') }}">{{ __('auth_ui.register.login') }}</x-portal.link>
+        <x-portal.link href="{{ route('login') }}" wire:navigate>{{ __('auth_ui.register.login') }}</x-portal.link>
     </p>
 </x-layouts::auth>

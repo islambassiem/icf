@@ -24,13 +24,13 @@
             class="relative isolate hidden flex-col justify-between overflow-hidden bg-night p-12 text-white lg:flex">
             <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
                 <div class="bg-grid absolute inset-0"></div>
-                <div class="absolute -start-24 top-10 h-96 w-96 animate-blob rounded-full bg-brand/50 blur-[100px]">
+                <div class="absolute -inset-s-24 top-10 h-96 w-96 animate-blob rounded-full bg-brand/50 blur-[100px]">
                 </div>
                 <div
-                    class="absolute -end-20 bottom-24 h-80 w-80 animate-blob rounded-full bg-mint/25 blur-[100px] [animation-delay:-7s]">
+                    class="absolute -inset-e-20 bottom-24 h-80 w-80 animate-blob rounded-full bg-mint/25 blur-[100px] [animation-delay:-7s]">
                 </div>
                 <div
-                    class="absolute bottom-0 start-1/3 h-64 w-64 animate-blob rounded-full bg-coral/25 blur-[100px] [animation-delay:-12s]">
+                    class="absolute bottom-0 inset-s-1/3 h-64 w-64 animate-blob rounded-full bg-coral/25 blur-[100px] [animation-delay:-12s]">
                 </div>
             </div>
 
