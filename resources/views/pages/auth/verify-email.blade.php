@@ -1,29 +1,17 @@
-<x-layouts::auth :title="__('Email verification')">
-    <div class="mt-4 flex flex-col gap-6">
-        <flux:text class="text-center">
-            {{ __('Please verify your email address by clicking on the link we just emailed to you.') }}
-        </flux:text>
+<x-layouts::auth :title="__('auth_ui.verify.title')" :heading="__('auth_ui.verify.heading')" :lead="__('auth_ui.verify.lead')">
+    @if (session('status') === 'verification-link-sent')
+        <x-portal.status :status="__('auth_ui.verify.sent')" />
+    @endif
 
-        @if (session('status') == 'verification-link-sent')
-            <flux:text class="text-center font-medium !dark:text-green-400 !text-green-600">
-                {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-            </flux:text>
-        @endif
+    <div class="space-y-4">
+        <form method="POST" action="{{ route('verification.send') }}">
+            @csrf
+            <x-portal.button>{{ __('auth_ui.verify.resend') }}</x-portal.button>
+        </form>
 
-        <div class="flex flex-col items-center justify-between space-y-3">
-            <form method="POST" action="{{ route('verification.send') }}">
-                @csrf
-                <flux:button type="submit" variant="primary" class="w-full">
-                    {{ __('Resend verification email') }}
-                </flux:button>
-            </form>
-
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <flux:button variant="ghost" type="submit" class="text-sm cursor-pointer" data-test="logout-button">
-                    {{ __('Log out') }}
-                </flux:button>
-            </form>
-        </div>
+        <form method="POST" action="{{ route('logout') }}" class="text-center text-sm">
+            @csrf
+            <button type="submit" class="font-bold text-brand-deep underline-offset-4 hover:underline focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand">{{ __('auth_ui.verify.logout') }}</button>
+        </form>
     </div>
 </x-layouts::auth>
