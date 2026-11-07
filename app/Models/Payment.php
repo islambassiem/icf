@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\CurrencyEnum;
 use App\Enums\PaymentStatusEnum;
-use BackedEnum;
 use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;

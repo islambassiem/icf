@@ -24,7 +24,7 @@ class PortalDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $user = User::where('email', 'test@example.com')->first() ?? User::first();
+        $user = User::query()->where('email', 'test@example.com')->first() ?? User::query()->first();
 
         if (! $user) {
             $this->command?->warn('No user found. Register one first.');
@@ -106,7 +106,7 @@ class PortalDemoSeeder extends Seeder
     private function createPlans(mixed $currency): Collection
     {
         return collect([['Monthly', 'شهرية', 30, 99], ['Quarterly', 'ربع سنوية', 90, 249], ['Yearly', 'سنوية', 365, 799]])
-            ->map(fn ($plan) => SubscriptionPlan::firstOrCreate(['name_en' => $plan[0]], [
+            ->map(fn ($plan) => SubscriptionPlan::query()->firstOrCreate(['name_en' => $plan[0]], [
                 'name_ar' => $plan[1], 'duration_days' => $plan[2], 'price' => $plan[3], 'currency' => $currency, 'is_active' => true,
             ]));
     }
@@ -118,7 +118,7 @@ class PortalDemoSeeder extends Seeder
         DB::table('exam_responses')->whereIn('exam_attempt_question_id', $aqIds)->delete();
         DB::table('exam_attempt_questions')->whereIn('attempt_id', $attemptIds)->delete();
         $user->examAttempts()->delete();
-        Payment::whereIn('subscription_id', $user->subscriptions()->pluck('id'))->delete();
+        Payment::query()->whereIn('subscription_id', $user->subscriptions()->pluck('id'))->delete();
         $user->subscriptions()->delete();
     }
 
@@ -181,7 +181,7 @@ class PortalDemoSeeder extends Seeder
      */
     private function makeAttempt(User $user, Subscription $current, array $bank, int $typeId, array $attrs, float $accuracy, ?int $answerOnly = null): array
     {
-        $attempt = ExamAttempt::create([
+        $attempt = ExamAttempt::query()->create([
             'user_id' => $user->id, 'subscription_id' => $current->id, 'exam_type_id' => $typeId,
         ] + $attrs);
 

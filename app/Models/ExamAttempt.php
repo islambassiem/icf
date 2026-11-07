@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Database\Factories\ExamAttemptFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 
 #[Fillable([
@@ -95,7 +96,8 @@ class ExamAttempt extends Model
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeCompleted(Builder $query): Builder
+    #[Scope]
+    protected function completed(Builder $query): Builder
     {
         return $query->whereNotNull('completed_at');
     }
@@ -106,7 +108,8 @@ class ExamAttempt extends Model
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeInProgress(Builder $query): Builder
+    #[Scope]
+    protected function inProgress(Builder $query): Builder
     {
         return $query->whereNull('completed_at')
             ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
@@ -119,7 +122,7 @@ class ExamAttempt extends Model
             return 'completed';
         }
 
-        return $this->expires_at && Carbon::parse($this->expires_at)->isPast() ? 'expired' : 'in_progress';
+        return $this->expires_at && Date::parse($this->expires_at)->isPast() ? 'expired' : 'in_progress';
     }
 
     /** Stored `score` as a 0-100 percentage. Set PORTAL_SCORE_MAX if `score` is raw points. */
@@ -147,19 +150,20 @@ class ExamAttempt extends Model
     public function currentDeadline(): ?CarbonInterface
     {
         if ($this->part_2_started_at) {
-            return $this->expires_at ? Carbon::parse($this->expires_at) : null;
+            return $this->expires_at ? Date::parse($this->expires_at) : null;
         }
 
         if ($this->break_started_at) {
-            return Carbon::parse($this->break_started_at)->addMinutes((int) config('portal.exam.break_minutes', 0));
+            return Date::parse($this->break_started_at)->addMinutes((int) config('portal.exam.break_minutes', 0));
         }
 
-        return Carbon::parse($this->part_1_ends_at);
+        return Date::parse($this->part_1_ends_at);
     }
 
     /**
      * Results by profile type and by question area, from this attempt's responses.
      * Scoring assumption: the best answer and the worst answer are worth one point each.
+     *
      * @return array{profile: array<int, array{id: int, name: mixed, percent: int, count: int}>, area: array<int, array{id: int, name: mixed, percent: int, count: int}>}
      */
     public function breakdown(): array
@@ -176,10 +180,10 @@ class ExamAttempt extends Model
             $names = DB::table($table)->get(['id', 'name_en', 'name_ar'])->keyBy('id');
             $ar = app()->getLocale() === 'ar';
 
-            return $rows->groupBy($column)->map(function ($items, $id) use ($names, $ar) {
+            return $rows->groupBy($column)->map(function ($items, $id) use ($names, $ar): array {
                 $row = $names[$id] ?? null;
                 $name = $row ? ($ar ? ($row->name_ar ?: $row->name_en) : ($row->name_en ?: $row->name_ar)) : '-';
-                $points = $items->sum(fn ($r) => (int) $r->best_ok + (int) $r->worst_ok);
+                $points = $items->sum(fn ($r): int => (int) $r->best_ok + (int) $r->worst_ok);
 
                 return ['id' => (int) $id, 'name' => $name, 'percent' => (int) round($points / (2 * $items->count()) * 100), 'count' => $items->count()];
             })->sortBy('id')->values()->all();

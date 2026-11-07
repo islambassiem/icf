@@ -6,9 +6,9 @@ namespace App\Models;
 
 use App\Enums\CurrencyEnum;
 use App\Models\Concerns\HasLocalizedName;
-use BackedEnum;
 use Database\Factories\SubscriptionPlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -54,7 +54,8 @@ class SubscriptionPlan extends Model
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeActive(Builder $query): Builder
+    #[Scope]
+    protected function active(Builder $query): Builder
     {
         return $query->where('is_active', true);
     }

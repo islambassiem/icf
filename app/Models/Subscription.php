@@ -3,14 +3,15 @@
 namespace App\Models;
 
 use App\Enums\CurrencyEnum;
-use Carbon\Carbon;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Date;
 
 #[Fillable([
     'user_id',
@@ -75,7 +76,8 @@ class Subscription extends Model
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeActive(Builder $query): Builder
+    #[Scope]
+    protected function active(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_ACTIVE)
             ->where('starts_at', '<=', now())
@@ -90,10 +92,10 @@ class Subscription extends Model
     /** 0-100: how much of the paid period has passed. */
     public function elapsedPercent(): int
     {
-        $total = Carbon::parse($this->starts_at)->diffInSeconds($this->ends_at);
+        $total = Date::parse($this->starts_at)->diffInSeconds($this->ends_at);
 
         return $total > 0
-            ? (int) min(100, max(0, round(Carbon::parse($this->starts_at)->diffInSeconds(now()) / $total * 100)))
+            ? (int) min(100, max(0, round(Date::parse($this->starts_at)->diffInSeconds(now()) / $total * 100)))
             : 100;
     }
 }
