@@ -11,6 +11,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\DatabaseNotificationCollection;
@@ -108,5 +111,41 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return Str::length($initials) > 1
             ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
             : $initials;
+    }
+
+    /**
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    /**
+     * Payments belong to a subscription, so they reach the user through it.
+     *
+     * @return HasManyThrough<Payment, Subscription, $this>
+     */
+    public function payments(): HasManyThrough
+    {
+        return $this->hasManyThrough(Payment::class, Subscription::class);
+    }
+
+    /**
+     * @return HasMany<ExamAttempt, $this>
+     */
+    public function examAttempts(): HasMany
+    {
+        return $this->hasMany(ExamAttempt::class);
+    }
+
+    /**
+     * The paid period that is running right now (latest end date wins).
+     *
+     * @return HasOne<Subscription, $this>
+     */
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->active()->latestOfMany('ends_at');
     }
 }

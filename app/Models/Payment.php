@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CurrencyEnum;
 use App\Enums\PaymentStatusEnum;
+use BackedEnum;
 use Database\Factories\PaymentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,6 +30,7 @@ class Payment extends Model
     protected function casts()
     {
         return [
+            'amount' => 'decimal:2',
             'currency' => CurrencyEnum::class,
             'status' => PaymentStatusEnum::class,
             'paid_at' => 'immutable_datetime',
@@ -41,5 +43,22 @@ class Payment extends Model
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    /** Status as lower-case text ("paid", "failed", ...), whatever the enum's case style. */
+    // public function statusKey(): string
+    // {
+    //     $s = $this->status;
+
+    //     return strtolower((string) ($s instanceof BackedEnum ? $s->value : $s));
+    // }
+
+    /** Currency as a plain code, e.g. "SAR". */
+    public function currencyCode(): string
+    {
+        /** @var CurrencyEnum $c */
+        $c = $this->currency;
+
+        return strtoupper($c->value);
     }
 }

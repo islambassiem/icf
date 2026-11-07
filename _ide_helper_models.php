@@ -61,9 +61,13 @@ namespace App\Models{
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExamAttemptQuestion> $attemptQuestions
  * @property-read int|null $attempt_questions_count
  * @property-read \App\Models\ExamType $examType
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExamResponse> $responses
+ * @property-read int|null $responses_count
  * @property-read \App\Models\Subscription $subscription
  * @property-read \App\Models\User $user
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt completed()
  * @method static \Database\Factories\ExamAttemptFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt inProgress()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamAttempt query()
@@ -149,6 +153,7 @@ namespace App\Models{
  * @property string|null $description
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read mixed $name
  * @method static \Database\Factories\ExamTypeFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamType newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ExamType newQuery()
@@ -206,6 +211,7 @@ namespace App\Models{
  * @property string|null $description
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read mixed $name
  * @method static \Database\Factories\ProfileTypeFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProfileType newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|ProfileType newQuery()
@@ -261,6 +267,7 @@ namespace App\Models{
  * @property string|null $description
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read mixed $name
  * @method static \Database\Factories\QuestionAreaFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|QuestionArea newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|QuestionArea newQuery()
@@ -287,8 +294,11 @@ namespace App\Models{
  * @property \App\Enums\CurrencyEnum $currency
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Payment> $payments
+ * @property-read int|null $payments_count
  * @property-read \App\Models\SubscriptionPlan $subscriptionPlan
  * @property-read \App\Models\User $user
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Subscription active()
  * @method static \Database\Factories\SubscriptionFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Subscription newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Subscription newQuery()
@@ -315,9 +325,13 @@ namespace App\Models{
  * @property int $duration_days
  * @property numeric $price
  * @property \App\Enums\CurrencyEnum $currency
- * @property int $is_active
+ * @property bool $is_active
  * @property \Carbon\CarbonImmutable|null $created_at
  * @property \Carbon\CarbonImmutable|null $updated_at
+ * @property-read mixed $name
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Subscription> $subscriptions
+ * @property-read int|null $subscriptions_count
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|SubscriptionPlan active()
  * @method static \Database\Factories\SubscriptionPlanFactory factory($count = null, $state = [])
  * @method static \Illuminate\Database\Eloquent\Builder<static>|SubscriptionPlan newModelQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|SubscriptionPlan newQuery()
@@ -380,6 +394,13 @@ namespace App\Models{
  * @method static Builder<static>|User withoutRole($roles, ?string $guard = null)
  * @method static Builder<static>|User withoutTeam($teams)
  * @mixin Model
+ * @property-read \App\Models\Subscription|null $activeSubscription
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\ExamAttempt> $examAttempts
+ * @property-read int|null $exam_attempts_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Payment> $payments
+ * @property-read int|null $payments_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Subscription> $subscriptions
+ * @property-read int|null $subscriptions_count
  */
 	class User extends \Eloquent implements \Illuminate\Contracts\Auth\MustVerifyEmail, \Laravel\Fortify\Contracts\PasskeyUser, \Laravel\Passkeys\Contracts\PasskeyUser {}
 }

@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Route;
 Route::livewire('/', 'pages::landing')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
+    // Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
 });
 
 require __DIR__.'/settings.php';

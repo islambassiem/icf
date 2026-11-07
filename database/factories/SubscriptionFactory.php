@@ -24,7 +24,7 @@ class SubscriptionFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'subscription_plan_id' => SubscriptionPlan::factory(),
+            'subscription_plan_id' => SubscriptionPlan::first()->id ??  SubscriptionPlan::factory(),
             'status' => fake()->randomElement(SubscriptionStatusEnum::cases()),
             'starts_at' => $startDate = Date::parse(fake()->dateTime()),
             'ends_at' => $startDate->addWeeks(2),

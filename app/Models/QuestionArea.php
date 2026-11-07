@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedName;
 use Database\Factories\QuestionAreaFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,4 +19,6 @@ class QuestionArea extends Model
 {
     /** @use HasFactory<QuestionAreaFactory> */
     use HasFactory;
+
+    use HasLocalizedName;
 }
