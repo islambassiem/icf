@@ -14,6 +14,6 @@ class SubscriptionPlanSeeder extends Seeder
      */
     public function run(): void
     {
-        SubscriptionPlan::factory()->create();
+        SubscriptionPlan::factory()->active()->create();
     }
 }

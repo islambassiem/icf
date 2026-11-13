@@ -15,9 +15,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(
-            append: [SetLocale::class]
-        );
+        // Language: runs after the session starts, on normal requests and Livewire updates.
+        $middleware->web(append: [
+            SetLocale::class,
+        ]);
+
+        // Payment providers cannot send a CSRF token. The webhook is protected by its signature instead.
+        // (If your Laravel version names this method differently, exclude 'webhooks/*' from CSRF checks.)
+        // $middleware->validateCsrfTokens(except: ['webhooks/*']);
+        $middleware->preventRequestForgery(except: ['webhooks/*']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -19,15 +19,15 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             SubscriptionPlanSeeder::class,
-            SubscriptionSeeder::class,
-            PaymentSeeder::class,
             ExamTypeSeeder::class,
-            QuestionAreaSeeder::class,
-            ProfileTypeSeeder::class,
-            QuestionSeeder::class,
-            ExamAttemptSeeder::class,
-            ExamAttemptQuestionSeeder::class,
-            ExamResponseSeeder::class,
+            // SubscriptionSeeder::class,
+            // PaymentSeeder::class,
+            // QuestionAreaSeeder::class,
+            // ProfileTypeSeeder::class,
+            // QuestionSeeder::class,
+            // ExamAttemptSeeder::class,
+            // ExamAttemptQuestionSeeder::class,
+            // ExamResponseSeeder::class,
         ]);
     }
 }

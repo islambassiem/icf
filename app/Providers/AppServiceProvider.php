@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Contracts\PaymentGateway;
+use App\Services\Payments\FakeGateway;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use RuntimeException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +18,22 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PaymentGateway::class,
+            fn (): FakeGateway => match (config('payments.driver')) {
+                'fake' => $this->provider(),
+                default => throw new RuntimeException('Unknown payment gateway: '.config('payments.driver')),
+            });
+    }
+
+    private function provider(): FakeGateway
+    {
+        throw_unless(
+            app()->isLocal(),
+            fn (): RuntimeException => new RuntimeException(
+                'The fake payment gateway cannot be used in production.'
+            ));
+
+        return new FakeGateway;
     }
 
     /**

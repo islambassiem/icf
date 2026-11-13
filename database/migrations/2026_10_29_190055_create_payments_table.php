@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('amount');
             $table->string('currency');
             $table->string('status');
-            $table->timestamp('paid_at');
+            $table->timestamp('paid_at')->nullable();
             $table->text('failure_reason')->nullable();
             $table->timestamps();
         });

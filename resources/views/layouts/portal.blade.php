@@ -18,10 +18,10 @@
     // [route name, label key, icon, active pattern]
     $items = [
         ['dashboard', 'nav.dashboard', 'home', 'dashboard'],
-        // ['exams.index', 'nav.take_exam', 'play', 'exams.*'],
-        // ['attempts.index', 'nav.attempts', 'list', 'attempts.*'],
-        // ['subscription.index', 'nav.subscription', 'card', 'subscription.*'],
-        // ['profile.edit', 'nav.profile', 'user', 'profile.*'],
+        ['exams.index', 'nav.take_exam', 'play', 'exams.*'],
+        ['attempts.index', 'nav.attempts', 'list', 'attempts.*'],
+        ['subscription.index', 'nav.subscription', 'card', 'subscription.*'],
+        ['profile.edit', 'nav.profile', 'user', 'profile.*'],
     ];
 @endphp
 <!DOCTYPE html>
@@ -43,11 +43,11 @@
 
     {{-- Sidebar (drawer on mobile) --}}
     <aside id="sidebar"
-           class="fixed inset-y-0 inset-s-0 z-40 flex w-72 -translate-x-full flex-col overflow-hidden bg-night text-white transition-transform duration-300 rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
+           class="print:hidden fixed inset-y-0 start-0 z-40 flex w-72 -translate-x-full flex-col overflow-hidden bg-night text-white transition-transform duration-300 rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
            x-bind:class="{ 'translate-x-0! rtl:translate-x-0!': open }">
-        <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
-            <div class="absolute -inset-s-20 -top-10 h-64 w-64 rounded-full bg-brand/40 blur-[90px]"></div>
-            <div class="absolute -bottom-10 -inset-e-20 h-64 w-64 rounded-full bg-mint/15 blur-[90px]"></div>
+        <div class="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
+            <div class="absolute -start-20 -top-10 h-64 w-64 rounded-full bg-brand/40 blur-[90px]"></div>
+            <div class="absolute -bottom-10 -end-20 h-64 w-64 rounded-full bg-mint/15 blur-[90px]"></div>
         </div>
 
         <div class="relative flex items-center justify-between px-6 pt-6">
@@ -94,13 +94,13 @@
     </aside>
 
     {{-- Content --}}
-    <div class="lg:ps-72">
-        <header class="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-lav-deep bg-lav/85 px-5 py-3 backdrop-blur lg:px-10">
+    <div class="lg:ps-72 print:ps-0">
+        <header class="print:hidden sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-lav-deep bg-lav/85 px-5 py-3 backdrop-blur lg:px-10">
             <button type="button" x-on:click="open = true" class="rounded-lg p-2 text-night hover:bg-white focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand lg:hidden" aria-controls="sidebar" aria-label="{{ __('portal.nav.menu') }}">
                 <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $icons['menu'] }}"/></svg>
             </button>
             <span class="hidden lg:block"></span>
-            <x-language-switcher  />
+            <x-language-switcher class="bg-white text-night ring-1 ring-lav-deep hover:ring-brand" />
         </header>
 
         <main class="mx-auto max-w-6xl px-5 py-8 lg:px-10 lg:py-10">

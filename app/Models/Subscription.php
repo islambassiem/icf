@@ -36,6 +36,9 @@ class Subscription extends Model
 
     public const STATUS_CANCELED = 'canceled';
 
+    // Set when the payment for a pending subscription fails.
+    public const STATUS_FAILED = 'failed';
+
     protected function casts(): array
     {
         return [

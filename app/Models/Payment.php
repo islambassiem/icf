@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property PaymentStatusEnum $status
+ */
 #[Fillable([
     'subscription_id',
     'provider',
@@ -45,12 +48,10 @@ class Payment extends Model
     }
 
     /** Status as lower-case text ("paid", "failed", ...), whatever the enum's case style. */
-    // public function statusKey(): string
-    // {
-    //     $s = $this->status;
-
-    //     return strtolower((string) ($s instanceof BackedEnum ? $s->value : $s));
-    // }
+    public function statusKey(): string
+    {
+        return strtolower($this->status->value);
+    }
 
     /** Currency as a plain code, e.g. "SAR". */
     public function currencyCode(): string
