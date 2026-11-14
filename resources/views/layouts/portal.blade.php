@@ -2,6 +2,21 @@
 @php
     $link = fn (string $name, array $params = []) => Route::has($name) ? route($name, $params) : '#';
     $user = auth()->user();
+
+    // Browser tab title for each page (translated).
+    $titleKeys = [
+        'dashboard' => 'portal.dashboard.title',
+        'subscription.index' => 'payment.index.title',
+        'subscription.checkout' => 'payment.checkout.title',
+        'subscription.return' => 'payment.return.title',
+        'payments.receipt' => 'payment.receipt.title',
+        'attempts.index' => 'report.index.title',
+        'attempts.show' => 'report.show.title',
+        'profile.edit' => 'settings.profile.title',
+        'security.edit' => 'settings.security.title',
+        'appearance.edit' => 'settings.appearance.title',
+    ];
+    $pageTitle = $title ?? __($titleKeys[Route::currentRouteName()] ?? 'portal.dashboard.title');
     $initials = $user->initials();
 
     $icons = [
@@ -18,10 +33,10 @@
     // [route name, label key, icon, active pattern]
     $items = [
         ['dashboard', 'nav.dashboard', 'home', 'dashboard'],
-        // ['exams.index', 'nav.take_exam', 'play', 'exams.*'],
+        ['exams.index', 'nav.take_exam', 'play', 'exams.*'],
         ['attempts.index', 'nav.attempts', 'list', 'attempts.*'],
         ['subscription.index', 'nav.subscription', 'card', 'subscription.*'],
-        ['profile.edit', 'nav.profile', 'user', 'profile.*'],
+        ['profile.edit', 'nav.profile', 'user', ['profile.*', 'security.*', 'appearance.*']],
     ];
 @endphp
 <!DOCTYPE html>
@@ -29,7 +44,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? __('portal.dashboard.title') }} | {{ config('app.name') }}</title>
+    <title>{{ $pageTitle }} | {{ config('app.name') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700;800&family=DM+Sans:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@400;600&display=swap" rel="stylesheet">
@@ -46,7 +61,7 @@
            class="print:hidden fixed inset-y-0 inset-s-0 z-40 flex w-72 -translate-x-full flex-col overflow-hidden bg-night text-white transition-transform duration-300 rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
            x-bind:class="{ 'translate-x-0! rtl:translate-x-0!': open }">
         <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
-            <div class="absolute -inset-s-20 -top-10 h-64 w-64 rounded-full bg-brand/40 blur-[90px]"></div>
+            <div class="absolute -inset-s-20-top-10 h-64 w-64 rounded-full bg-brand/40 blur-[90px]"></div>
             <div class="absolute -bottom-10 -inset-e-20 h-64 w-64 rounded-full bg-mint/15 blur-[90px]"></div>
         </div>
 
@@ -64,7 +79,7 @@
 
         <nav class="relative mt-10 flex-1 space-y-1 overflow-y-auto px-4" aria-label="{{ __('portal.nav.main') }}">
             @foreach ($items as [$route, $label, $icon, $pattern])
-                @php $active = request()->routeIs($pattern); @endphp
+                @php $active = request()->routeIs(...(array) $pattern); @endphp
                 <a href="{{ $link($route) }}" @if ($active) aria-current="page" @endif
                    class="flex items-center gap-3 rounded-xl px-4 py-3 text-[15px] font-semibold transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-mint
                           {{ $active ? 'bg-white/12 text-white shadow-inner ring-1 ring-white/15' : 'text-white/65 hover:bg-white/8 hover:text-white' }}">

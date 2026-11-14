@@ -2,17 +2,17 @@
 
 use App\Concerns\ProfileValidationRules;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Title;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-new #[Title('Profile settings')] class extends Component {
+new #[Layout('layouts::portal')] class extends Component {
     use ProfileValidationRules;
 
     public string $name = '';
+
     public string $email = '';
 
     /**
@@ -41,7 +41,7 @@ new #[Title('Profile settings')] class extends Component {
 
         $user->save();
 
-        Flux::toast(variant: 'success', text: __('Profile updated.'));
+        $this->dispatch('profile-updated');
     }
 
     /**
@@ -76,49 +76,36 @@ new #[Title('Profile settings')] class extends Component {
     }
 }; ?>
 
-<section class="w-full">
-    @include('partials.settings-heading')
+<div>
+<x-settings.shell :heading="__('settings.profile.heading')" :lead="__('settings.profile.lead')">
 
-    <flux:heading level="2" class="sr-only">{{ __('Profile settings') }}</flux:heading>
+    <x-settings.card :title="__('settings.profile.info_title')" :text="__('settings.profile.info_text')">
+        <form wire:submit="updateProfileInformation" class="space-y-5">
+            <x-portal.input wire:model="name" name="name" :label="__('settings.profile.name')" required autofocus autocomplete="name" />
+            <x-portal.input wire:model="email" name="email" type="email" :label="__('settings.profile.email')" required autocomplete="email" />
 
-    <x-pages::settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
-        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
+            @if ($this->hasUnverifiedEmail)
+                <div class="rounded-2xl bg-sun/25 px-4 py-3 text-sm ring-1 ring-sun/60" role="status">
+                    <p class="font-semibold">{{ __('settings.profile.unverified') }}</p>
+                    <button type="button" wire:click.prevent="resendVerificationNotification" class="mt-1 font-bold underline underline-offset-4 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand">{{ __('settings.profile.resend') }}</button>
 
-            <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+                    @if (session('status') === 'verification-link-sent')
+                        <p class="mt-2 font-semibold text-mint-deep">{{ __('settings.profile.link_sent') }}</p>
+                    @endif
+                </div>
+            @endif
 
-                @if ($this->hasUnverifiedEmail)
-                    <div>
-                        <flux:text class="mt-4">
-                            {{ __('Your email address is unverified.') }}
-
-                            <flux:link class="text-sm cursor-pointer" wire:click.prevent="resendVerificationNotification">
-                                {{ __('Click here to re-send the verification email.') }}
-                            </flux:link>
-                        </flux:text>
-
-                        @if (session('status') === 'verification-link-sent')
-                            <flux:text class="mt-2 font-medium !dark:text-green-400 text-green-600!">
-                                {{ __('A new verification link has been sent to your email address.') }}
-                            </flux:text>
-                        @endif
-                    </div>
-                @endif
-            </div>
+            <p class="text-xs text-night/50">{{ __('settings.profile.email_changed') }}</p>
 
             <div class="flex items-center gap-4">
-                <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
-                        {{ __('Save') }}
-                    </flux:button>
-                </div>
-
+                <x-portal.button :full="false" class="px-8" wire:loading.attr="disabled" wire:target="updateProfileInformation" data-test="update-profile-button">{{ __('settings.profile.save') }}</x-portal.button>
+                <x-settings.saved on="profile-updated" />
             </div>
         </form>
+    </x-settings.card>
 
-        @if ($this->showDeleteUser)
-            <livewire:pages::settings.delete-user-form />
-        @endif
-    </x-pages::settings.layout>
-</section>
+    @if ($this->showDeleteUser)
+        <livewire:pages::settings.delete-user-form />
+    @endif
+</x-settings.shell>
+</div>
