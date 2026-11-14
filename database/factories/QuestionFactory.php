@@ -32,4 +32,18 @@ class QuestionFactory extends Factory
             'status' => fake()->randomElement(QuestionStatusEnum::cases()),
         ];
     }
+
+    public function acc(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'exam_type_id' => 1,
+        ]);
+    }
+
+    public function pcc(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'exam_type_id' => 2,
+        ]);
+    }
 }

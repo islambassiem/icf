@@ -1,0 +1,90 @@
+<?php
+
+return [
+    'show' => [
+        'title' => 'Exam report',
+        'back' => 'All attempts',
+        'heading' => ':type exam report',
+        'taken' => 'Taken on :date',
+        'score' => 'Your score',
+        'points' => ':n of :max points',
+        'answered' => ':n of :total answered',
+        'time' => 'Time taken',
+        'minutes' => ':n min',
+        'vs_prev' => 'points vs your previous :type exam',
+        'first' => 'This is your first :type exam. Use it as your starting point.',
+        'retake' => 'Take another exam',
+        'print' => 'Print report',
+        'dashboard' => 'Dashboard',
+    ],
+
+    'focus' => [
+        'title' => 'Where to focus next',
+        'lead' => 'Your lowest areas in this exam. Review the questions you missed in them before your next attempt.',
+        'review' => 'Show missed questions',
+        'all_good' => 'Strong result across all areas. Keep practising to stay sharp.',
+    ],
+
+    'groups' => [
+        'by_profile' => 'By profile type',
+        'by_area' => 'By question area',
+        'questions' => '{1} :count question|[2,*] :count questions',
+        'weakest' => 'Lowest',
+    ],
+
+    'review' => [
+        'title' => 'Question by question',
+        'lead' => 'Open a question to see the best answer, the worst answer, and the expert\'s reasoning for every option.',
+        'filter' => [
+            'all' => 'All',
+            'incorrect' => 'Incorrect',
+            'partial' => 'Partly correct',
+            'correct' => 'Correct',
+            'unanswered' => 'Not answered',
+        ],
+        'status' => [
+            'correct' => 'Correct',
+            'partial' => 'Partly correct',
+            'incorrect' => 'Incorrect',
+            'unanswered' => 'Not answered',
+        ],
+        'part_q' => 'Part :part, question :n',
+        'points' => ':n of 2',
+        'option' => 'Option',
+        'best_answer' => 'Best answer',
+        'worst_answer' => 'Worst answer',
+        'your_best' => 'Your best',
+        'your_worst' => 'Your worst',
+        'comment' => 'Expert comment',
+        'not_answered' => 'You did not answer this question.',
+        'empty' => 'No questions in this filter.',
+        'expand' => 'Show details',
+        'collapse' => 'Hide details',
+    ],
+
+    'index' => [
+        'title' => 'My attempts',
+        'heading' => 'My attempts',
+        'lead' => 'Every exam you have taken, with the full report for each.',
+        'start' => 'Start a new exam',
+        'date' => 'Date',
+        'type' => 'Exam',
+        'score' => 'Score',
+        'status' => 'Status',
+        'time' => 'Time taken',
+        'minutes' => ':n min',
+        'report' => 'View report',
+        'resume' => 'Resume',
+        'empty' => 'You have not taken an exam yet.',
+        'status_names' => [
+            'completed' => 'Completed',
+            'in_progress' => 'In progress',
+            'expired' => 'Expired',
+        ],
+        'stats' => [
+            'count' => 'Exams completed',
+            'best' => 'Best score',
+            'average' => 'Average score',
+        ],
+    ],
+];

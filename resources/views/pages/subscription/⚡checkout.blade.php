@@ -99,8 +99,8 @@ new #[Layout('layouts::portal')] class extends Component {
     <aside class="lg:col-span-2">
         <div class="relative isolate overflow-hidden rounded-3xl bg-night p-7 text-white lg:sticky lg:top-24">
             <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-                <div class="absolute -end-16 -top-16 h-56 w-56 rounded-full bg-brand/50 blur-[80px]"></div>
-                <div class="absolute -bottom-16 start-0 h-48 w-48 rounded-full bg-mint/20 blur-[80px]"></div>
+                <div class="absolute -inset-e-16 -top-16 h-56 w-56 rounded-full bg-brand/50 blur-[80px]"></div>
+                <div class="absolute -bottom-16 inset-s-0 h-48 w-48 rounded-full bg-mint/20 blur-[80px]"></div>
             </div>
 
             <h2 class="font-display text-lg font-bold">{{ __('payment.checkout.summary') }}</h2>

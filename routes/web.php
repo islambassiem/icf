@@ -1,13 +1,14 @@
 <?php
 
-declare(strict_types=1);
-
+// routes/web.php
 use App\Http\Controllers\FakeGatewayController;
 use App\Http\Controllers\PaymentWebhookController;
 use App\Http\Controllers\SetLocaleController;
 use Illuminate\Support\Facades\Route;
 
 Route::livewire('/', 'pages::landing')->name('home');
+
+Route::get('/locale/{locale}', SetLocaleController::class)->name('locale.switch');
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
@@ -18,13 +19,15 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::livewire('subscription/return/{payment}', 'pages::subscription.return')->name('subscription.return');
     Route::livewire('payments/{payment}/receipt', 'pages::payments.receipt')->name('payments.receipt');
 
-    // Still to build with the exam pages:
-    //   exams.index, exams.create {examType}, exams.take {attempt}, attempts.index, attempts.show {attempt}
+    // ---- Exams ----
+    // The sidebar's "Take an exam" goes to the exam picker on the dashboard.
+    Route::get('exams', fn () => redirect()->to(route('dashboard').'#start-exam'))->name('exams.index');
+    Route::livewire('exams/{attempt}', 'pages::exams.take')->name('exams.take');
+
+    // ---- Attempts and reports ----
+    Route::livewire('attempts', 'pages::attempts.index')->name('attempts.index');
+    Route::livewire('attempts/{attempt}', 'pages::attempts.show')->name('attempts.show');
 });
-
-require __DIR__.'/settings.php';
-
-Route::get('/locale/{locale}', SetLocaleController::class)->name('locale.switch');
 
 // The provider calls this directly: no login, no CSRF (see bootstrap-app.php.snippet).
 Route::post('webhooks/payments', PaymentWebhookController::class)->name('webhooks.payments');
@@ -36,3 +39,5 @@ if (config('payments.driver') === 'fake' && ! app()->isProduction()) {
         Route::post('fake-gateway/{payment}', [FakeGatewayController::class, 'complete'])->name('fake-gateway.complete');
     });
 }
+
+require __DIR__.'/settings.php';

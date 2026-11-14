@@ -1,9 +1,12 @@
 <?php
 
+use App\Exceptions\InsufficientQuestionsException;
+use App\Exceptions\NoActiveSubscriptionException;
 use App\Models\ExamAttempt;
 use App\Models\ExamType;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Services\Exams\ExamStarter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Livewire\Attributes\Computed;
@@ -159,24 +162,30 @@ new #[Layout('layouts::portal')] class extends Component {
             && (! $sub || $sub->daysLeft() <= config('portal.renew_warning_days'));
     }
 
-    /** Hands over to the exam page, which picks the questions and creates the attempt. */
-    public function startExam(): void
+    /** Checks the subscription, picks the questions, creates the attempt and opens it. */
+    public function startExam(ExamStarter $starter): void
     {
         $this->notice = null;
 
-        if (! $this->subscription) {
+        $type = $this->examTypes->firstWhere('id', $this->examTypeId);
+
+        if (! $type) {
+            return;
+        }
+
+        try {
+            $attempt = $starter->start(auth()->user(), $type);
+        } catch (NoActiveSubscriptionException) {
             $this->notice = __('portal.dashboard.exam.locked');
 
             return;
-        }
-
-        if (! Route::has('exams.create')) {
-            $this->notice = __('portal.dashboard.exam.coming');
+        } catch (InsufficientQuestionsException) {
+            $this->notice = __('portal.dashboard.exam.unavailable');
 
             return;
         }
 
-        $this->redirectRoute('exams.create', ['examType' => $this->examTypeId], navigate: true);
+        $this->redirectRoute('exams.take', [$attempt], navigate: true);
     }
 };
 ?>
@@ -254,8 +263,8 @@ new #[Layout('layouts::portal')] class extends Component {
     <section class="relative isolate overflow-hidden rounded-3xl bg-night p-7 text-white sm:p-9 lg:col-span-2" aria-labelledby="next-title">
         <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
             <div class="bg-grid absolute inset-0 opacity-60"></div>
-            <div class="absolute -end-16 -top-16 h-72 w-72 rounded-full bg-brand/50 blur-[90px]"></div>
-            <div class="absolute -bottom-20 start-1/4 h-60 w-60 rounded-full bg-mint/20 blur-[90px]"></div>
+            <div class="absolute -inset-e-16 -top-16 h-72 w-72 rounded-full bg-brand/50 blur-[90px]"></div>
+            <div class="absolute -bottom-20 inset-s-1/4 h-60 w-60 rounded-full bg-mint/20 blur-[90px]"></div>
         </div>
         <p class="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-bold tracking-wide text-white/85">
             <span class="h-2 w-2 rounded-full bg-mint shadow-[0_0_10px_#34F5B5]"></span>
@@ -339,7 +348,7 @@ new #[Layout('layouts::portal')] class extends Component {
                 @php $popular = (bool) ($plan->is_popular ?? false); @endphp
                 <article class="relative flex flex-col rounded-3xl p-7 {{ $popular ? 'bg-night text-white shadow-xl shadow-brand/25 ring-2 ring-brand' : 'bg-white ring-1 ring-lav-deep' }}">
                     @if ($popular)
-                        <span class="absolute -top-3 start-7 rounded-full bg-linear-to-r from-brand to-mint px-3 py-1 text-xs font-extrabold text-night">{{ __('portal.dashboard.plans.popular') }}</span>
+                        <span class="absolute -top-3 inset-s-7 rounded-full bg-linear-to-r from-brand to-mint px-3 py-1 text-xs font-extrabold text-night">{{ __('portal.dashboard.plans.popular') }}</span>
                     @endif
                     <h3 class="font-display text-xl font-bold">{{ $plan->name }}</h3>
                     <p class="mt-1 text-sm {{ $popular ? 'text-white/65' : 'text-night/55' }}">{{ trans_choice('portal.dashboard.plans.days', $plan->duration_days, ['count' => $plan->duration_days]) }}</p>
@@ -525,7 +534,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
         @if ($this->attempts->isNotEmpty())
             <div class="mt-4 overflow-x-auto">
-                <table class="w-full min-w-[34rem] text-start text-sm">
+                <table class="w-full min-w-136 text-start text-sm">
                     <thead class="text-xs font-bold uppercase text-night/45">
                         <tr class="border-b border-lav-deep">
                             <th class="py-2.5 pe-3 text-start font-bold">{{ __('portal.dashboard.attempts.date') }}</th>
@@ -573,7 +582,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
         @if ($this->payments->isNotEmpty())
             <div class="mt-4 overflow-x-auto">
-                <table class="w-full min-w-[34rem] text-start text-sm">
+                <table class="w-full min-w-136 text-start text-sm">
                     <thead class="text-xs font-bold uppercase text-night/45">
                         <tr class="border-b border-lav-deep">
                             <th class="py-2.5 pe-3 text-start font-bold">{{ __('portal.dashboard.payments.date') }}</th>
@@ -608,7 +617,7 @@ new #[Layout('layouts::portal')] class extends Component {
     </section>
 
     <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand to-brand-deep p-7 text-white" aria-labelledby="help-title">
-        <div class="pointer-events-none absolute -end-10 -top-10 h-40 w-40 rounded-full bg-mint/30 blur-3xl" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -inset-e-10 -top-10 h-40 w-40 rounded-full bg-mint/30 blur-3xl" aria-hidden="true"></div>
         <h2 id="help-title" class="relative font-display text-xl font-bold">{{ __('portal.dashboard.help.title') }}</h2>
         <p class="relative mt-2 leading-relaxed text-white/80">{{ __('portal.dashboard.help.text') }}</p>
         <a href="{{ $link('contact') !== '#' ? $link('contact') : url('/contact') }}" class="relative mt-6 inline-block rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-night hover:bg-mint focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-deep">{{ __('portal.dashboard.help.cta') }}</a>

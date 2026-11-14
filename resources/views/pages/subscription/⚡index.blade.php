@@ -113,7 +113,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
     @if ($this->history->isNotEmpty())
         <div class="mt-4 overflow-x-auto">
-            <table class="w-full min-w-[36rem] text-start text-sm">
+            <table class="w-full min-w-xl text-start text-sm">
                 <thead class="text-xs font-bold uppercase text-night/45">
                     <tr class="border-b border-lav-deep">
                         <th class="py-2.5 pe-3 text-start font-bold">{{ __('payment.index.date') }}</th>
@@ -138,7 +138,7 @@ new #[Layout('layouts::portal')] class extends Component {
                             <td class="py-3.5 pe-3">
                                 <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $badge($key) }}">{{ $statusLabel($key) }}</span>
                                 @if ($why)
-                                    <span class="mt-1 block max-w-[14rem] text-xs text-night/55">{{ $why }}</span>
+                                    <span class="mt-1 block max-w-56 text-xs text-night/55">{{ $why }}</span>
                                 @endif
                             </td>
                             <td class="py-3.5 text-end">

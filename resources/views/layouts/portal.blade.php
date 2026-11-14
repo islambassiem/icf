@@ -18,7 +18,7 @@
     // [route name, label key, icon, active pattern]
     $items = [
         ['dashboard', 'nav.dashboard', 'home', 'dashboard'],
-        ['exams.index', 'nav.take_exam', 'play', 'exams.*'],
+        // ['exams.index', 'nav.take_exam', 'play', 'exams.*'],
         ['attempts.index', 'nav.attempts', 'list', 'attempts.*'],
         ['subscription.index', 'nav.subscription', 'card', 'subscription.*'],
         ['profile.edit', 'nav.profile', 'user', 'profile.*'],
@@ -43,11 +43,11 @@
 
     {{-- Sidebar (drawer on mobile) --}}
     <aside id="sidebar"
-           class="print:hidden fixed inset-y-0 start-0 z-40 flex w-72 -translate-x-full flex-col overflow-hidden bg-night text-white transition-transform duration-300 rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
+           class="print:hidden fixed inset-y-0 inset-s-0 z-40 flex w-72 -translate-x-full flex-col overflow-hidden bg-night text-white transition-transform duration-300 rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
            x-bind:class="{ 'translate-x-0! rtl:translate-x-0!': open }">
-        <div class="pointer-events-none absolute inset-0 -z-0" aria-hidden="true">
-            <div class="absolute -start-20 -top-10 h-64 w-64 rounded-full bg-brand/40 blur-[90px]"></div>
-            <div class="absolute -bottom-10 -end-20 h-64 w-64 rounded-full bg-mint/15 blur-[90px]"></div>
+        <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+            <div class="absolute -inset-s-20 -top-10 h-64 w-64 rounded-full bg-brand/40 blur-[90px]"></div>
+            <div class="absolute -bottom-10 -inset-e-20 h-64 w-64 rounded-full bg-mint/15 blur-[90px]"></div>
         </div>
 
         <div class="relative flex items-center justify-between px-6 pt-6">

@@ -17,9 +17,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
-            SubscriptionPlanSeeder::class,
-            ExamTypeSeeder::class,
+            // UserSeeder::class,
+            // SubscriptionPlanSeeder::class,
+            // ExamTypeSeeder::class,
             // SubscriptionSeeder::class,
             // PaymentSeeder::class,
             // QuestionAreaSeeder::class,
@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             // ExamAttemptSeeder::class,
             // ExamAttemptQuestionSeeder::class,
             // ExamResponseSeeder::class,
+            PortalDemoSeeder::class,
         ]);
     }
 }

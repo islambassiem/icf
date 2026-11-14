@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Database\Factories\ExamAttemptFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,9 +13,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @property ?Carbon $started_at
+ * @property ?Carbon $part_1_ends_at
+ * @property ?Carbon $break_started_at
+ * @property ?Carbon $part_2_started_at
+ * @property ?Carbon $expires_at
+ * @property ?CarbonInterface $completed_at
+ * @property ?int $score
+ */
 #[Fillable([
     'user_id',
     'subscription_id',
@@ -122,7 +132,7 @@ class ExamAttempt extends Model
             return 'completed';
         }
 
-        return $this->expires_at && Date::parse($this->expires_at)->isPast() ? 'expired' : 'in_progress';
+        return $this->expires_at?->isPast() ? 'expired' : 'in_progress';
     }
 
     /** Stored `score` as a 0-100 percentage. Set PORTAL_SCORE_MAX if `score` is raw points. */
@@ -143,55 +153,79 @@ class ExamAttempt extends Model
 
     public function onBreak(): bool
     {
-        return $this->break_started_at && ! $this->part_2_started_at;
+        return $this->break_started_at !== null && $this->part_2_started_at === null;
     }
 
     /** When the part (or break) the user is in right now ends. */
     public function currentDeadline(): ?CarbonInterface
     {
         if ($this->part_2_started_at) {
-            return $this->expires_at ? Date::parse($this->expires_at) : null;
+            return $this->expires_at;
         }
 
         if ($this->break_started_at) {
-            return Date::parse($this->break_started_at)->addMinutes((int) config('portal.exam.break_minutes', 0));
+            return $this->break_started_at->copy()->addMinutes((int) config('portal.exam.break_minutes'));
         }
 
-        return Date::parse($this->part_1_ends_at);
+        return $this->part_1_ends_at;
     }
 
     /**
-     * Results by profile type and by question area, from this attempt's responses.
-     * Scoring assumption: the best answer and the worst answer are worth one point each.
+     * Results by profile type and by question area, from the questions frozen into this attempt.
+     * Scoring: the best answer and the worst answer are worth one point each; unanswered questions score 0.
      *
-     * @return array{profile: array<int, array{id: int, name: mixed, percent: int, count: int}>, area: array<int, array{id: int, name: mixed, percent: int, count: int}>}
+     * @return array{
+     *  profile: list<array{id: int, name: string, percent: int, count: int}>,
+     *  area: list<array{id: int, name: string, percent: int, count: int}>
+     * }
      */
     public function breakdown(): array
     {
-        $rows = DB::table('exam_responses as r')
-            ->join('exam_attempt_questions as aq', 'aq.id', '=', 'r.exam_attempt_question_id')
-            ->join('questions as q', 'q.id', '=', 'aq.question_id')
-            ->join('answer_options as b', 'b.id', '=', 'r.best_answer_option_id')
-            ->leftJoin('answer_options as w', 'w.id', '=', 'r.worst_answer_option_id')
-            ->where('aq.attempt_id', $this->id)
-            ->get(['q.profile_type_id', 'q.question_area_id', 'b.is_best as best_ok', 'w.is_worst as worst_ok']);
-
-        $group = function (string $column, string $table) use ($rows): array {
-            $names = DB::table($table)->get(['id', 'name_en', 'name_ar'])->keyBy('id');
-            $ar = app()->getLocale() === 'ar';
-
-            return $rows->groupBy($column)->map(function ($items, $id) use ($names, $ar): array {
-                $row = $names[$id] ?? null;
-                $name = $row ? ($ar ? ($row->name_ar ?: $row->name_en) : ($row->name_en ?: $row->name_ar)) : '-';
-                $points = $items->sum(fn ($r): int => (int) $r->best_ok + (int) $r->worst_ok);
-
-                return ['id' => (int) $id, 'name' => $name, 'percent' => (int) round($points / (2 * $items->count()) * 100), 'count' => $items->count()];
-            })->sortBy('id')->values()->all();
-        };
+        $rows = $this->attemptQuestions()->with('response')->get()->map(
+            fn (ExamAttemptQuestion $aq): array => [
+                'profile' => $aq->profileTypeId(),
+                'area' => $aq->questionAreaId(),
+                'points' => $aq->points(),
+            ]
+        );
 
         return [
-            'profile' => $group('profile_type_id', 'profile_types'),
-            'area' => $group('question_area_id', 'question_areas'),
+            'profile' => $this->groupResults($rows, 'profile', 'profile_types'),
+            'area' => $this->groupResults($rows, 'area', 'question_areas'),
         ];
+    }
+
+    /**
+     * @param  Collection<int, array{profile: int, area: int, points: int}>  $rows
+     * @param  'profile'|'area'  $key
+     * @return list<array{id: int, name: string, percent: int, count: int}>
+     */
+    private function groupResults(Collection $rows, string $key, string $table): array
+    {
+        $names = DB::table($table)->get(['id', 'name_en', 'name_ar'])->keyBy('id');
+        $arabic = app()->getLocale() === 'ar';
+        $groups = [];
+
+        foreach ($rows->groupBy($key) as $id => $items) {
+            $row = $names->get($id);
+            $name = '-';
+
+            if ($row !== null) {
+                $en = (string) $row->name_en;
+                $ar = (string) $row->name_ar;
+                $name = $arabic ? ($ar !== '' ? $ar : $en) : ($en !== '' ? $en : $ar);
+            }
+
+            $groups[] = [
+                'id' => (int) $id,
+                'name' => $name,
+                'percent' => (int) round($items->sum('points') / (2 * $items->count()) * 100),
+                'count' => $items->count(),
+            ];
+        }
+
+        usort($groups, fn (array $a, array $b): int => $a['id'] <=> $b['id']);
+
+        return $groups;
     }
 }

@@ -93,8 +93,8 @@ return [
             'start' => 'Start :type exam',
             'starting' => 'Preparing your exam...',
             'locked' => 'An active subscription is needed to start an exam.',
+            'unavailable' => 'This exam does not have enough questions yet. Please try again later.',
             'locked_cta' => 'Choose a plan',
-            'coming' => 'The exam page is the next page we are building.',
             'resume_title' => 'Exam in progress',
             'resume_text' => ':type, part :part. :answered of :total answered.',
             'break_left' => 'Break time left',
@@ -145,6 +145,7 @@ return [
             'amount' => 'Amount',
             'status' => 'Status',
             'receipt' => 'Receipt',
+            'retry' => 'Try again',
             'status_names' => [
                 'paid' => 'Paid',
                 'pending' => 'Pending',

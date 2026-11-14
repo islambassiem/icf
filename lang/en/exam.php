@@ -1,0 +1,48 @@
+<?php
+
+return [
+    'title' => 'Exam',
+    'exit' => 'Exit (progress is saved)',
+    'part_label' => 'Part :n of :total',
+    'question_of' => 'Question :n of :total',
+    'time_left' => 'Time left',
+    'break_left' => 'Break ends in',
+    'answered' => ':n of :total answered',
+    'previous' => 'Previous',
+    'next' => 'Next',
+    'submit_part' => 'Submit part :n',
+    'submit_exam' => 'Submit exam',
+    'confirm_part' => 'Submit part :n? You will not be able to come back to it.',
+    'confirm_exam' => 'Submit your exam? You will not be able to change your answers.',
+    'saving' => 'Saving...',
+    'saved' => 'Answer saved',
+    'instructions' => 'Drag one option to "Best" and one to "Worst", or use the buttons on each option.',
+    'best_zone' => 'Best answer',
+    'worst_zone' => 'Worst answer',
+    'best_btn' => 'Best',
+    'worst_btn' => 'Worst',
+    'option' => 'Option',
+    'map' => 'Question map',
+    'legend_answered' => 'Answered',
+    'legend_open' => 'Not answered',
+    'legend_current' => 'Current',
+    'missing' => '{1} Question :list is not answered yet. All questions must be answered.|[2,*] :count questions are not answered yet (:list). All questions must be answered.',
+    'time_up' => 'Time is up',
+
+    'break' => [
+        'title' => 'Break time',
+        'text' => 'Part 1 is submitted. Rest, stretch, have some water. Part 2 starts by itself when the timer ends.',
+        'summary' => 'Part 1: :answered of :total answered.',
+        'start_now' => 'Start part 2 now',
+        'note' => 'Part 2 lasts :minutes minutes once it starts.',
+    ],
+
+    'done' => [
+        'title' => 'Exam completed',
+        'text' => 'Your answers are saved and scored.',
+        'score' => 'Your score',
+        'answered' => ':answered of :total questions answered',
+        'report' => 'View detailed report',
+        'dashboard' => 'Back to dashboard',
+    ],
+];
