@@ -64,7 +64,7 @@ return [
     'stats' => [
         ['num' => '2', 'label' => 'timed parts'],
         ['num' => '40', 'label' => 'questions in each part'],
-        ['num' => '75', 'label' => 'minutes per part'],
+        ['num' => '70', 'label' => 'minutes per part'],
         ['num' => '10', 'label' => 'minute break between'],
     ],
 
@@ -87,7 +87,7 @@ return [
             ['icon' => 'price', 'title' => 'Priced for working coaches', 'text' => 'A fraction of the cost of the official mock exam, with unlimited retakes while your subscription is active.'],
             ['icon' => 'clock', 'title' => 'Built like the real exam', 'text' => 'Two timed parts, a break between them, one question per page and best-and-worst selection by drag and drop.'],
             ['icon' => 'idea', 'title' => 'Feedback on every option', 'text' => 'An expert explains why the correct answers are right and why each wrong answer is wrong.'],
-            ['icon' => 'chart', 'title' => 'A report that says what to do next', 'text' => 'Results by exam type, situational or behavioural questions, and competency, skill or value.'],
+            ['icon' => 'chart', 'title' => 'A report that says what to do next', 'text' => 'Results by question type (knowledge or situational judgment) and by competency, skill or value.'],
             ['icon' => 'grid', 'title' => 'Move freely between questions', 'text' => 'Use the question map to jump around and leave the difficult ones for the end.'],
             ['icon' => 'again', 'title' => 'A new set every attempt', 'text' => 'Each attempt draws a random set of questions from the bank, so repeating it keeps testing you.'],
         ],
@@ -97,7 +97,7 @@ return [
         'title' => 'A report you can act on the same day',
         'lead' => "When the exam closes, you see how you did and where to go next. Review each question against the expert's best and worst answers, with the reasoning behind both.",
         'bullets' => [
-            'Results by situational and behavioural questions',
+            'Results for knowledge and situational judgment questions',
             'Results by competency, skill and value',
             "The expert's comment on every option you could have chosen",
         ],
@@ -147,7 +147,7 @@ return [
 
     'sample' => [
         'acc' => [
-            'area' => 'Situational',
+            'area' => 'Situational Judgment',
             'profile' => 'Skill: Active listening',
             'question' => 'Ten minutes into a session, your client says they want to quit their job. Earlier they told you the goal for the session was to prepare for a promotion interview. What is the best and the worst thing to do next?',
             'options' => [
@@ -160,7 +160,7 @@ return [
             'worst_note' => 'Sharing your own story moves the focus from the client to you.',
         ],
         'pcc' => [
-            'area' => 'Behavioural',
+            'area' => 'Situational Judgment',
             'profile' => 'Competency: Maintains presence',
             'question' => 'Your client goes silent for almost a minute after you ask a powerful question. You notice you feel uncomfortable. What is the best and the worst thing to do next?',
             'options' => [

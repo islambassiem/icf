@@ -33,7 +33,7 @@ class ExamClock
     {
         return match ($this->phase($attempt)) {
             'part1' => $attempt->part_1_ends_at,
-            'break' => $attempt->break_started_at->copy()->addMinutes((int) config('portal.exam.break_minutes')),
+            'break' => $attempt->break_started_at->copy()->addMinutes($attempt->breakMinutes()),
             'part2' => $attempt->expires_at,
             default => null,
         };
@@ -49,8 +49,8 @@ class ExamClock
         return DB::transaction(function () use ($attempt): ExamAttempt {
             $a = ExamAttempt::query()->whereKey($attempt->id)->lockForUpdate()->firstOrFail();
             $now = now();
-            $partMinutes = (int) config('portal.exam.minutes_per_part');
-            $breakMinutes = (int) config('portal.exam.break_minutes');
+            $breakMinutes = $a->breakMinutes();
+            $part2Minutes = $a->partMinutes(2);
 
             // Part 1 time is up: the break begins exactly when part 1 ended.
             if ($this->phase($a) === 'part1' && $a->part_1_ends_at && $now->gte($a->part_1_ends_at)) {
@@ -63,7 +63,7 @@ class ExamClock
 
                 if ($now->gte($auto)) {
                     $a->part_2_started_at = $auto;
-                    $a->expires_at = $auto->copy()->addMinutes($partMinutes);
+                    $a->expires_at = $auto->copy()->addMinutes($part2Minutes);
                 }
             }
 
@@ -93,7 +93,7 @@ class ExamClock
             $now = now();
             $attempt->update([
                 'part_2_started_at' => $now,
-                'expires_at' => $now->copy()->addMinutes((int) config('portal.exam.minutes_per_part')),
+                'expires_at' => $now->copy()->addMinutes($attempt->partMinutes(2)),
             ]);
         }
     }

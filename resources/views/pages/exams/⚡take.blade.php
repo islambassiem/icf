@@ -23,7 +23,7 @@ new #[Layout('layouts::exam')] class extends Component {
         $this->attempt = app(ExamClock::class)->sync($attempt);
 
         // Resume at the first question that still has no answer.
-        $this->current = $this->questions->first(fn ($q) => ! $q->response)?->position ?? 1;
+        $this->current = $this->questions->first(fn ($q) => ! $q->isAnswered())?->position ?? 1;
     }
 
     /** part1 | break | part2 | done */
@@ -101,8 +101,12 @@ new #[Layout('layouts::exam')] class extends Component {
         $this->notice = null;
     }
 
-    /** Saves (or replaces) the answer of one question. Rejects anything that is not a valid choice. */
-    public function saveAnswer(int $attemptQuestionId, int $bestId, int $worstId): void
+    /**
+     * Saves (or replaces) the answer of one question. Rejects anything that is not a valid choice.
+     * Knowledge questions take ONE choice ($bestId = the chosen option, $worstId is ignored).
+     * Situational questions take a best AND a different worst option.
+     */
+    public function saveAnswer(int $attemptQuestionId, int $bestId, int $worstId = 0): void
     {
         $this->resync();
 
@@ -117,7 +121,13 @@ new #[Layout('layouts::exam')] class extends Component {
 
         $optionIds = $question->snapshotOptions()->pluck('id')->map(fn ($id) => (int) $id);
 
-        if ($bestId === $worstId || ! $optionIds->contains($bestId) || ! $optionIds->contains($worstId)) {
+        if (! $optionIds->contains($bestId)) {
+            return;
+        }
+
+        if ($question->isSingle()) {
+            $worstId = null;
+        } elseif ($bestId === $worstId || ! $optionIds->contains($worstId)) {
             return;
         }
 
@@ -136,7 +146,7 @@ new #[Layout('layouts::exam')] class extends Component {
             return;
         }
 
-        $missing = $this->questions->filter(fn ($q) => ! $q->response)->pluck('position')->values();
+        $missing = $this->questions->filter(fn ($q) => ! $q->isAnswered())->pluck('position')->values();
 
         if ($missing->isNotEmpty()) {
             $this->current = (int) $missing->first();
@@ -200,7 +210,7 @@ new #[Layout('layouts::exam')] class extends Component {
         $questions = $this->questions;
         $aq = $questions->firstWhere('position', $current) ?? $questions->first();
         $snap = $aq->snapshot();
-        $answered = $questions->filter(fn ($q) => $q->response)->count();
+        $answered = $questions->filter(fn ($q) => $q->isAnswered())->count();
         $count = $questions->count();
         $isLast = $current >= $count;
     @endphp
@@ -232,12 +242,15 @@ new #[Layout('layouts::exam')] class extends Component {
                 <p class="mb-5 rounded-xl bg-coral/10 px-4 py-3 text-sm font-semibold text-coral-deep ring-1 ring-coral/30" role="alert">{{ $notice }}</p>
             @endif
 
+            @php $single = $aq->isSingle(); @endphp
             <div wire:key="q-{{ $aq->id }}"
                  class="rounded-3xl bg-white p-6 ring-1 ring-lav-deep sm:p-8"
                  x-data="{
+                    single: {{ $single ? 'true' : 'false' }},
                     best: {{ $aq->response?->best_answer_option_id ?? 'null' }},
                     worst: {{ $aq->response?->worst_answer_option_id ?? 'null' }},
-                    drag: null, saving: false, saved: {{ $aq->response ? 'true' : 'false' }},
+                    drag: null, saving: false, saved: {{ $aq->isAnswered() ? 'true' : 'false' }},
+                    choose(id) { this.best = id; this.save() },
                     assign(zone, id) {
                         if (id === null) return;
                         if (zone === 'best') { if (this.worst === id) this.worst = null; this.best = id }
@@ -245,56 +258,76 @@ new #[Layout('layouts::exam')] class extends Component {
                         this.save();
                     },
                     save() {
-                        if (this.best === null || this.worst === null) { this.saved = false; return }
+                        if (this.best === null || (!this.single && this.worst === null)) { this.saved = false; return }
                         this.saving = true;
-                        $wire.saveAnswer({{ $aq->id }}, this.best, this.worst).then(() => { this.saving = false; this.saved = true });
+                        $wire.saveAnswer({{ $aq->id }}, this.best, this.single ? 0 : this.worst).then(() => { this.saving = false; this.saved = true });
                     },
                     number(id) { return id === null ? '' : this.ids.indexOf(id) + 1 },
                     ids: {{ Js::from(collect($snap['options'] ?? [])->pluck('id')->map(fn ($i) => (int) $i)->values()) }}
                  }">
 
-                <p class="text-sm font-bold text-night/50">{{ __('exam.question_of', ['n' => $current, 'total' => $count]) }}</p>
-                <h1 id="q-title" class="mt-2 text-xl font-semibold leading-relaxed sm:text-2xl">{{ $text($snap, 'statement') }}</h1>
-                <p class="mt-3 text-sm text-night/60">{{ __('exam.instructions') }}</p>
-
-                {{-- Options --}}
-                <ul class="mt-6 space-y-3">
-                    @foreach ($snap['options'] ?? [] as $i => $option)
-                        @php $id = (int) $option['id']; @endphp
-                        <li draggable="true"
-                            @dragstart="drag = {{ $id }}; $event.dataTransfer.setData('text/plain', '{{ $id }}')" @dragend="drag = null"
-                            class="flex cursor-grab items-start gap-3 rounded-2xl border-2 px-4 py-3.5 transition active:cursor-grabbing"
-                            :class="{
-                                'border-mint bg-mint/10': best === {{ $id }},
-                                'border-coral bg-coral/10': worst === {{ $id }},
-                                'border-lav-deep bg-white hover:border-brand/40': best !== {{ $id }} && worst !== {{ $id }},
-                                'opacity-40': drag === {{ $id }}
-                            }">
-                            <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lav font-display text-sm font-extrabold">{{ $i + 1 }}</span>
-                            <span class="flex-1 leading-relaxed">{{ $text($option, 'statement') }}</span>
-                            <span class="flex shrink-0 flex-col gap-1.5 sm:flex-row">
-                                <button type="button" @click="assign('best', {{ $id }})" class="rounded-lg px-2.5 py-1 text-xs font-bold ring-1 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-mint-deep"
-                                    :class="best === {{ $id }} ? 'bg-mint text-night ring-mint' : 'text-mint-deep ring-mint-deep/30 hover:bg-mint/20'" :aria-pressed="best === {{ $id }}">{{ __('exam.best_btn') }}</button>
-                                <button type="button" @click="assign('worst', {{ $id }})" class="rounded-lg px-2.5 py-1 text-xs font-bold ring-1 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-coral-deep"
-                                    :class="worst === {{ $id }} ? 'bg-coral text-white ring-coral' : 'text-coral-deep ring-coral-deep/30 hover:bg-coral/15'" :aria-pressed="worst === {{ $id }}">{{ __('exam.worst_btn') }}</button>
-                            </span>
-                        </li>
-                    @endforeach
-                </ul>
-
-                {{-- Drop zones --}}
-                <div class="mt-5 grid grid-cols-2 gap-3 text-sm font-bold">
-                    <div @dragover.prevent @drop.prevent="assign('best', drag)"
-                         class="grid min-h-16 place-items-center rounded-2xl border-2 border-dashed border-mint-deep/50 bg-mint/5 px-3 py-3 text-center text-mint-deep transition" :class="drag !== null && 'border-mint-deep bg-mint/20'">
-                        <span x-show="best === null">{{ __('exam.best_zone') }}</span>
-                        <span x-show="best !== null" x-cloak x-text="'{{ __('exam.option') }} ' + number(best)"></span>
-                    </div>
-                    <div @dragover.prevent @drop.prevent="assign('worst', drag)"
-                         class="grid min-h-16 place-items-center rounded-2xl border-2 border-dashed border-coral-deep/50 bg-coral/5 px-3 py-3 text-center text-coral-deep transition" :class="drag !== null && 'border-coral-deep bg-coral/20'">
-                        <span x-show="worst === null">{{ __('exam.worst_zone') }}</span>
-                        <span x-show="worst !== null" x-cloak x-text="'{{ __('exam.option') }} ' + number(worst)"></span>
-                    </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="rounded-full bg-lav px-3 py-1 text-xs font-bold text-brand-deep">{{ $text($snap, 'type_name') }}</span>
+                    <p class="text-sm font-bold text-night/50">{{ __('exam.question_of', ['n' => $current, 'total' => $count]) }}</p>
                 </div>
+                <h1 id="q-title" class="mt-3 text-xl font-semibold leading-relaxed sm:text-2xl">{{ $text($snap, 'statement') }}</h1>
+                <p class="mt-3 text-sm text-night/60">{{ $single ? __('exam.instructions_single') : __('exam.instructions') }}</p>
+
+                @if ($single)
+                    {{-- One correct answer: choose one --}}
+                    <ul class="mt-6 space-y-3" role="radiogroup" aria-labelledby="q-title">
+                        @foreach ($snap['options'] ?? [] as $i => $option)
+                            @php $id = (int) $option['id']; @endphp
+                            <li>
+                                <button type="button" role="radio" x-bind:aria-checked="best === {{ $id }}" @click="choose({{ $id }})"
+                                    class="flex w-full items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-start transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand"
+                                    :class="best === {{ $id }} ? 'border-brand bg-brand/8 shadow-lg shadow-brand/10' : 'border-lav-deep bg-white hover:border-brand/40'">
+                                    <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full font-display text-sm font-extrabold transition"
+                                        :class="best === {{ $id }} ? 'bg-brand text-white' : 'bg-lav'">{{ chr(65 + $i) }}</span>
+                                    <span class="flex-1 leading-relaxed">{{ $text($option, 'statement') }}</span>
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    {{-- Situational judgment: drag a best and a worst --}}
+                    <ul class="mt-6 space-y-3">
+                        @foreach ($snap['options'] ?? [] as $i => $option)
+                            @php $id = (int) $option['id']; @endphp
+                            <li draggable="true"
+                                @dragstart="drag = {{ $id }}; $event.dataTransfer.setData('text/plain', '{{ $id }}')" @dragend="drag = null"
+                                class="flex cursor-grab items-start gap-3 rounded-2xl border-2 px-4 py-3.5 transition active:cursor-grabbing"
+                                :class="{
+                                    'border-mint bg-mint/10': best === {{ $id }},
+                                    'border-coral bg-coral/10': worst === {{ $id }},
+                                    'border-lav-deep bg-white hover:border-brand/40': best !== {{ $id }} && worst !== {{ $id }},
+                                    'opacity-40': drag === {{ $id }}
+                                }">
+                                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lav font-display text-sm font-extrabold">{{ $i + 1 }}</span>
+                                <span class="flex-1 leading-relaxed">{{ $text($option, 'statement') }}</span>
+                                <span class="flex shrink-0 flex-col gap-1.5 sm:flex-row">
+                                    <button type="button" @click="assign('best', {{ $id }})" class="rounded-lg px-2.5 py-1 text-xs font-bold ring-1 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-mint-deep"
+                                        :class="best === {{ $id }} ? 'bg-mint text-night ring-mint' : 'text-mint-deep ring-mint-deep/30 hover:bg-mint/20'" :aria-pressed="best === {{ $id }}">{{ __('exam.best_btn') }}</button>
+                                    <button type="button" @click="assign('worst', {{ $id }})" class="rounded-lg px-2.5 py-1 text-xs font-bold ring-1 transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-coral-deep"
+                                        :class="worst === {{ $id }} ? 'bg-coral text-white ring-coral' : 'text-coral-deep ring-coral-deep/30 hover:bg-coral/15'" :aria-pressed="worst === {{ $id }}">{{ __('exam.worst_btn') }}</button>
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    <div class="mt-5 grid grid-cols-2 gap-3 text-sm font-bold">
+                        <div @dragover.prevent @drop.prevent="assign('best', drag)"
+                             class="grid min-h-[4rem] place-items-center rounded-2xl border-2 border-dashed border-mint-deep/50 bg-mint/5 px-3 py-3 text-center text-mint-deep transition" :class="drag !== null && 'border-mint-deep bg-mint/20'">
+                            <span x-show="best === null">{{ __('exam.best_zone') }}</span>
+                            <span x-show="best !== null" x-cloak x-text="'{{ __('exam.option') }} ' + number(best)"></span>
+                        </div>
+                        <div @dragover.prevent @drop.prevent="assign('worst', drag)"
+                             class="grid min-h-[4rem] place-items-center rounded-2xl border-2 border-dashed border-coral-deep/50 bg-coral/5 px-3 py-3 text-center text-coral-deep transition" :class="drag !== null && 'border-coral-deep bg-coral/20'">
+                            <span x-show="worst === null">{{ __('exam.worst_zone') }}</span>
+                            <span x-show="worst !== null" x-cloak x-text="'{{ __('exam.option') }} ' + number(worst)"></span>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Footer --}}
                 <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
@@ -318,14 +351,17 @@ new #[Layout('layouts::exam')] class extends Component {
                 <h2 class="font-display text-base font-bold">{{ __('exam.map') }}</h2>
                 <p class="mt-1 text-sm text-night/60">{{ __('exam.answered', ['n' => $answered, 'total' => $count]) }}</p>
 
-                <div class="mt-4 grid grid-cols-8 gap-1.5 lg:grid-cols-5">
-                    @foreach ($questions as $q)
-                        @php $is = $q->position === $current; @endphp
-                        <button type="button" wire:click="goTo({{ $q->position }})" aria-label="{{ __('exam.question_of', ['n' => $q->position, 'total' => $count]) }}" @if ($is) aria-current="true" @endif
-                            class="grid aspect-square place-items-center rounded-lg text-xs font-bold tabular-nums transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand
-                                   {{ $is ? 'bg-sun text-night ring-2 ring-night' : ($q->response ? 'bg-brand text-white' : 'bg-lav text-night/70 hover:bg-lav-deep') }}">{{ $q->position }}</button>
-                    @endforeach
-                </div>
+                @foreach ($questions->groupBy(fn ($q) => $q->typeCode()) as $group)
+                    <p class="mt-4 text-xs font-bold uppercase tracking-wide text-night/45">{{ $text($group->first()->snapshot(), 'type_name') }} <span class="tabular-nums">({{ $group->count() }})</span></p>
+                    <div class="mt-2 grid grid-cols-8 gap-1.5 lg:grid-cols-5">
+                        @foreach ($group as $q)
+                            @php $is = $q->position === $current; @endphp
+                            <button type="button" wire:click="goTo({{ $q->position }})" aria-label="{{ __('exam.question_of', ['n' => $q->position, 'total' => $count]) }}" @if ($is) aria-current="true" @endif
+                                class="grid aspect-square place-items-center text-xs font-bold tabular-nums transition focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand {{ $q->isSingle() ? 'rounded-full' : 'rounded-lg' }}
+                                       {{ $is ? 'bg-sun text-night ring-2 ring-night' : ($q->isAnswered() ? 'bg-brand text-white' : 'bg-lav text-night/70 hover:bg-lav-deep') }}">{{ $q->position }}</button>
+                        @endforeach
+                    </div>
+                @endforeach
 
                 <ul class="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-night/60">
                     <li class="flex items-center gap-1.5"><span class="h-3 w-3 rounded bg-brand"></span>{{ __('exam.legend_answered') }}</li>
@@ -349,8 +385,8 @@ new #[Layout('layouts::exam')] class extends Component {
     <main class="mx-auto flex min-h-screen max-w-xl items-center px-5 py-10">
         <div class="relative isolate w-full overflow-hidden rounded-3xl bg-night p-8 text-center text-white sm:p-10">
             <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
-                <div class="absolute -inset-e-16 -top-16 h-64 w-64 rounded-full bg-brand/50 blur-[90px]"></div>
-                <div class="absolute -bottom-16 inset-s-0 h-56 w-56 rounded-full bg-mint/25 blur-[90px]"></div>
+                <div class="absolute -end-16 -top-16 h-64 w-64 rounded-full bg-brand/50 blur-[90px]"></div>
+                <div class="absolute -bottom-16 start-0 h-56 w-56 rounded-full bg-mint/25 blur-[90px]"></div>
             </div>
 
             <h1 class="font-display text-3xl font-extrabold">{{ __('exam.break.title') }}</h1>

@@ -17,6 +17,7 @@ return [
     'saving' => 'Saving...',
     'saved' => 'Answer saved',
     'instructions' => 'Drag one option to "Best" and one to "Worst", or use the buttons on each option.',
+    'instructions_single' => 'Choose the ONE most accurate answer.',
     'best_zone' => 'Best answer',
     'worst_zone' => 'Worst answer',
     'best_btn' => 'Best',

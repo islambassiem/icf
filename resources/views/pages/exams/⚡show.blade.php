@@ -55,11 +55,13 @@ new #[Layout('layouts::portal')] class extends Component {
                 $yourBest = $r ? (int) $r->best_answer_option_id : null;
                 $yourWorst = $r?->worst_answer_option_id ? (int) $r->worst_answer_option_id : null;
                 $points = $aq->points();
+                $max = $aq->maxPoints();
 
                 return [
                     'id' => $aq->id,
                     'part' => $aq->part_number,
                     'position' => $aq->position,
+                    'single' => $aq->isSingle(),
                     'snap' => $snap,
                     'options' => $options,
                     'best' => $best,
@@ -67,7 +69,8 @@ new #[Layout('layouts::portal')] class extends Component {
                     'your_best' => $yourBest,
                     'your_worst' => $yourWorst,
                     'points' => $points,
-                    'status' => ! $r ? 'unanswered' : ($points === 2 ? 'correct' : ($points === 1 ? 'partial' : 'incorrect')),
+                    'max' => $max,
+                    'status' => ! $aq->isAnswered() ? 'unanswered' : ($points >= $max ? 'correct' : ($points === 0 ? 'incorrect' : 'partial')),
                 ];
             });
     }
@@ -127,7 +130,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
     $pct = (float) ($attempt->scorePercent() ?? 0);
     $points = $rows->sum('points');
-    $maxPoints = $rows->count() * 2;
+    $maxPoints = (int) $rows->sum('max');
     $prev = $this->previousScore;
     $delta = $prev === null ? null : round($pct - $prev);
     $minutes = $attempt->started_at && $attempt->completed_at ? (int) round($attempt->started_at->diffInMinutes($attempt->completed_at)) : null;
@@ -138,9 +141,9 @@ new #[Layout('layouts::portal')] class extends Component {
     $tone = fn ($v) => $v < 50 ? 'bg-coral' : ($v < 70 ? 'bg-brand' : 'bg-mint');
     $card = 'rounded-3xl bg-white p-6 ring-1 ring-lav-deep sm:p-7';
 
-    // Lowest two profile types and the lowest question area: the "where to focus" list.
+    // Lowest two profile types and the lowest question type: the "where to focus" list.
     $focus = collect($breakdown['profile'])->sortBy('percent')->take(2)
-        ->merge(collect($breakdown['area'])->sortBy('percent')->take(1))
+        ->merge(collect($breakdown['type'])->sortBy('percent')->take(1))
         ->filter(fn ($g) => $g['percent'] < 80)->values();
     $weakProfileId = collect($breakdown['profile'])->sortBy('percent')->first()['id'] ?? null;
 
@@ -168,8 +171,8 @@ new #[Layout('layouts::portal')] class extends Component {
 <section class="relative isolate mt-5 overflow-hidden rounded-3xl bg-night p-7 text-white sm:p-10 print:bg-white print:text-night print:ring-1 print:ring-night/20" aria-labelledby="report-title">
     <div class="pointer-events-none absolute inset-0 -z-10 print:hidden" aria-hidden="true">
         <div class="bg-grid absolute inset-0 opacity-60"></div>
-        <div class="absolute -inset-e-16 -top-20 h-72 w-72 rounded-full bg-brand/50 blur-[90px]"></div>
-        <div class="absolute -bottom-20 inset-s-1/4 h-60 w-60 rounded-full bg-mint/20 blur-[90px]"></div>
+        <div class="absolute -end-16 -top-20 h-72 w-72 rounded-full bg-brand/50 blur-[90px]"></div>
+        <div class="absolute -bottom-20 start-1/4 h-60 w-60 rounded-full bg-mint/20 blur-[90px]"></div>
     </div>
 
     <div class="grid items-center gap-8 md:grid-cols-[auto_1fr]">
@@ -213,7 +216,7 @@ new #[Layout('layouts::portal')] class extends Component {
     <section class="{{ $card }} lg:col-span-2" aria-labelledby="groups-title">
         <h2 id="groups-title" class="sr-only">{{ __('report.groups.by_profile') }}</h2>
         <div class="grid gap-8 sm:grid-cols-2">
-            @foreach (['profile' => 'by_profile', 'area' => 'by_area'] as $group => $heading)
+            @foreach (['type' => 'by_type', 'profile' => 'by_profile'] as $group => $heading)
                 @if (! empty($breakdown[$group]))
                     <div>
                         <h3 class="text-xs font-bold uppercase tracking-wide text-night/45">{{ __('report.groups.' . $heading) }}</h3>
@@ -243,7 +246,7 @@ new #[Layout('layouts::portal')] class extends Component {
     </section>
 
     <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand to-brand-deep p-7 text-white print:bg-white print:text-night print:ring-1 print:ring-night/20" aria-labelledby="focus-title">
-        <div class="pointer-events-none absolute -inset-e-10 -top-10 h-40 w-40 rounded-full bg-mint/30 blur-3xl print:hidden" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -end-10 -top-10 h-40 w-40 rounded-full bg-mint/30 blur-3xl print:hidden" aria-hidden="true"></div>
         <h2 id="focus-title" class="relative font-display text-xl font-bold">{{ __('report.focus.title') }}</h2>
         @if ($focus->isNotEmpty())
             <p class="relative mt-2 text-sm leading-relaxed text-white/80 print:text-night/70">{{ __('report.focus.lead') }}</p>
@@ -289,13 +292,13 @@ new #[Layout('layouts::portal')] class extends Component {
                         class="flex w-full items-start gap-4 rounded-2xl px-5 py-4 text-start focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand">
                         <span class="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full font-display text-sm font-extrabold {{ $statusStyle[$row['status']] }}">{{ $row['position'] }}</span>
                         <span class="min-w-0 flex-1">
-                            <span class="block text-xs font-bold text-night/45">{{ __('report.review.part_q', ['part' => $row['part'], 'n' => $row['position']]) }}</span>
+                            <span class="block text-xs font-bold text-night/45">{{ $text($row['snap'], 'type_name') }} &middot; {{ __('report.review.part_q', ['part' => $row['part'], 'n' => $row['position']]) }}</span>
                             <span class="mt-0.5 block font-semibold leading-relaxed">{{ $text($row['snap'], 'statement') }}</span>
                         </span>
                         <span class="flex shrink-0 flex-col items-end gap-1.5">
                             <span class="rounded-full px-2.5 py-1 text-xs font-bold {{ $statusStyle[$row['status']] }}">{{ __('report.review.status.' . $row['status']) }}</span>
                             @if ($row['status'] !== 'unanswered')
-                                <span class="text-xs tabular-nums text-night/50">{{ __('report.review.points', ['n' => $row['points']]) }}</span>
+                                <span class="text-xs tabular-nums text-night/50">{{ __('report.review.points', ['n' => $row['points'], 'max' => $row['max']]) }}</span>
                             @endif
                         </span>
                         <svg viewBox="0 0 24 24" class="mt-1.5 h-5 w-5 shrink-0 text-night/40 transition print:hidden" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
@@ -316,18 +319,18 @@ new #[Layout('layouts::portal')] class extends Component {
                             $yourWorst = $id === $row['your_worst'];
                             $comment = trim($text($o, 'comment'));
                         @endphp
-                        <div class="rounded-xl border-2 px-4 py-3 {{ $isBest ? 'border-mint bg-mint/10' : ($isWorst ? 'border-coral bg-coral/10' : (($yourBest || $yourWorst) ? 'border-sun bg-sun/15' : 'border-lav-deep')) }}">
+                        <div class="rounded-xl border-2 px-4 py-3 {{ $isBest ? 'border-mint bg-mint/10' : (($isWorst && ! $row['single']) ? 'border-coral bg-coral/10' : (($yourBest || $yourWorst) ? 'border-sun bg-sun/15' : 'border-lav-deep')) }}">
                             <div class="flex items-start gap-3">
                                 <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white font-display text-xs font-extrabold ring-1 ring-lav-deep">{{ $i + 1 }}</span>
                                 <p class="flex-1 leading-relaxed">{{ $text($o, 'statement') }}</p>
                             </div>
 
-                            @if ($isBest || $isWorst || $yourBest || $yourWorst)
+                            @if ($isBest || ($isWorst && ! $row['single']) || $yourBest || ($yourWorst && ! $row['single']))
                                 <div class="mt-2 flex flex-wrap gap-1.5 ps-9 text-[11px] font-bold">
-                                    @if ($isBest)<span class="rounded-full bg-mint px-2.5 py-0.5 text-night">{{ __('report.review.best_answer') }}</span>@endif
-                                    @if ($isWorst)<span class="rounded-full bg-coral px-2.5 py-0.5 text-white">{{ __('report.review.worst_answer') }}</span>@endif
-                                    @if ($yourBest)<span class="rounded-full bg-white px-2.5 py-0.5 ring-1 {{ $isBest ? 'text-mint-deep ring-mint-deep/40' : 'text-coral-deep ring-coral-deep/40' }}">{{ $isBest ? '✓' : '✗' }} {{ __('report.review.your_best') }}</span>@endif
-                                    @if ($yourWorst)<span class="rounded-full bg-white px-2.5 py-0.5 ring-1 {{ $isWorst ? 'text-mint-deep ring-mint-deep/40' : 'text-coral-deep ring-coral-deep/40' }}">{{ $isWorst ? '✓' : '✗' }} {{ __('report.review.your_worst') }}</span>@endif
+                                    @if ($isBest)<span class="rounded-full bg-mint px-2.5 py-0.5 text-night">{{ $row['single'] ? __('report.review.correct_answer') : __('report.review.best_answer') }}</span>@endif
+                                    @if ($isWorst && ! $row['single'])<span class="rounded-full bg-coral px-2.5 py-0.5 text-white">{{ __('report.review.worst_answer') }}</span>@endif
+                                    @if ($yourBest)<span class="rounded-full bg-white px-2.5 py-0.5 ring-1 {{ $isBest ? 'text-mint-deep ring-mint-deep/40' : 'text-coral-deep ring-coral-deep/40' }}">{{ $isBest ? '✓' : '✗' }} {{ $row['single'] ? __('report.review.your_answer') : __('report.review.your_best') }}</span>@endif
+                                    @if ($yourWorst && ! $row['single'])<span class="rounded-full bg-white px-2.5 py-0.5 ring-1 {{ $isWorst ? 'text-mint-deep ring-mint-deep/40' : 'text-coral-deep ring-coral-deep/40' }}">{{ $isWorst ? '✓' : '✗' }} {{ __('report.review.your_worst') }}</span>@endif
                                 </div>
                             @endif
 
@@ -336,6 +339,14 @@ new #[Layout('layouts::portal')] class extends Component {
                             @endif
                         </div>
                     @endforeach
+
+                    @php $rationale = trim($text($row['snap'], 'rationale')); @endphp
+                    @if ($rationale !== '')
+                        <div class="rounded-xl bg-lav/70 px-4 py-3 text-sm leading-relaxed">
+                            <p class="font-bold">{{ __('report.review.rationale') }}</p>
+                            <p class="mt-1 whitespace-pre-line text-night/75">{{ $rationale }}</p>
+                        </div>
+                    @endif
                 </div>
             </article>
         @empty

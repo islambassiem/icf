@@ -98,26 +98,76 @@ class ExamAttemptQuestion extends Model
         return (int) ($this->snapshot()['profile_type_id'] ?? 0);
     }
 
-    public function questionAreaId(): int
+    public function questionTypeId(): int
     {
-        return (int) ($this->snapshot()['question_area_id'] ?? 0);
+        return (int) ($this->snapshot()['type_id'] ?? 0);
     }
 
-    /** Points earned: 1 for the right best answer plus 1 for the right worst answer (0 if unanswered). */
-    public function points(): int
+    /** knowledge, situational, ... (the question_types.code it had when the exam started) */
+    public function typeCode(): string
+    {
+        return (string) ($this->snapshot()['type'] ?? 'situational');
+    }
+
+    /** 'single' (one correct answer) or 'best_worst'. Older attempts without a mode are best_worst. */
+    public function mode(): string
+    {
+        return ($this->snapshot()['mode'] ?? null) === 'single' ? 'single' : 'best_worst';
+    }
+
+    public function isSingle(): bool
+    {
+        return $this->mode() === 'single';
+    }
+
+    public function bestPoints(): int
+    {
+        return (int) ($this->snapshot()['best_points'] ?? 1);
+    }
+
+    public function worstPoints(): int
+    {
+        return (int) ($this->snapshot()['worst_points'] ?? 1);
+    }
+
+    /** The most this question can earn, using the points frozen into the attempt. */
+    public function maxPoints(): int
+    {
+        return $this->isSingle() ? $this->bestPoints() : $this->bestPoints() + $this->worstPoints();
+    }
+
+    /** Has the candidate given a complete answer? (one choice, or both a best and a worst) */
+    public function isAnswered(): bool
     {
         $response = $this->response;
 
-        if ($response === null) {
+        if ($response === null || $response->best_answer_option_id === null) {
+            return false;
+        }
+
+        return $this->isSingle() || $response->worst_answer_option_id !== null;
+    }
+
+    /** Points earned for this question (0 if unanswered or wrong). */
+    public function points(): int
+    {
+        if (! $this->isAnswered()) {
             return 0;
         }
 
+        $response = $this->response;
         $best = $this->bestOptionId();
-        $worst = $this->worstOptionId();
-        $yourWorst = $response->worst_answer_option_id;
+        $points = ($best !== null && (int) $response->best_answer_option_id === $best) ? $this->bestPoints() : 0;
 
-        return (int) ($best !== null && (int) $response->best_answer_option_id === $best)
-            + (int) ($worst !== null && $yourWorst !== null && (int) $yourWorst === $worst);
+        if (! $this->isSingle()) {
+            $worst = $this->worstOptionId();
+
+            if ($worst !== null && (int) $response->worst_answer_option_id === $worst) {
+                $points += $this->worstPoints();
+            }
+        }
+
+        return $points;
     }
 
     private function flaggedOptionId(string $flag): ?int

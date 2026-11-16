@@ -115,7 +115,7 @@
                 <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $icons['menu'] }}"/></svg>
             </button>
             <span class="hidden lg:block"></span>
-            <x-language-switcher class="bg-white text-night ring-1 ring-lav-deep hover:ring-brand" />
+            <x-language-switcher />
         </header>
 
         <main class="mx-auto max-w-6xl px-5 py-8 lg:px-10 lg:py-10">

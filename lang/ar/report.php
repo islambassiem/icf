@@ -26,8 +26,8 @@ return [
     ],
 
     'groups' => [
+        'by_type' => 'حسب نوع السؤال',
         'by_profile' => 'حسب نوع الملف',
-        'by_area' => 'حسب مجال السؤال',
         'questions' => '{1} سؤال واحد|{2} سؤالان|[3,10] :count أسئلة|[11,*] :count سؤالاً',
         'weakest' => 'الأدنى',
     ],
@@ -49,8 +49,11 @@ return [
             'unanswered' => 'لم تتم الإجابة',
         ],
         'part_q' => 'الجزء :part، السؤال :n',
-        'points' => ':n من 2',
+        'points' => ':n من :max',
         'option' => 'الخيار',
+        'correct_answer' => 'الإجابة الصحيحة',
+        'your_answer' => 'إجابتك',
+        'rationale' => 'تعليل الخبير',
         'best_answer' => 'أفضل إجابة',
         'worst_answer' => 'أسوأ إجابة',
         'your_best' => 'اخترته أفضل',

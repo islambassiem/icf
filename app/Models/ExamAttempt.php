@@ -37,6 +37,7 @@ use Illuminate\Support\Facades\DB;
     'expires_at',
     'completed_at',
     'score',
+    'structure_snapshot',
 ])]
 class ExamAttempt extends Model
 {
@@ -59,6 +60,7 @@ class ExamAttempt extends Model
             'expires_at' => 'datetime',
             'completed_at' => 'datetime',
             'score' => 'integer',
+            'structure_snapshot' => 'array',
         ];
     }
 
@@ -145,6 +147,58 @@ class ExamAttempt extends Model
         return round($this->score / max(1, (float) config('portal.score_max')) * 100, 1);
     }
 
+    /**
+     * The exam rules this attempt started with (minutes per part, break, what each part contains).
+     * Attempts that were started before the structure became configurable get the old defaults.
+     *
+     * @return array{parts: list<array{part: int, minutes: int, break_minutes: int, sections: list<array<string, mixed>>}>, total_questions?: int, max_points?: int}
+     */
+    public function structure(): array
+    {
+        $raw = $this->getAttribute('structure_snapshot');
+
+        if (is_array($raw) && isset($raw['parts']) && is_array($raw['parts'])) {
+            /** @var array{parts: list<array{part: int, minutes: int, break_minutes: int, sections: list<array<string, mixed>>}>} $raw */
+            return $raw;
+        }
+
+        $minutes = (int) config('portal.exam.minutes_per_part', 70);
+
+        return ['parts' => [
+            ['part' => 1, 'minutes' => $minutes, 'break_minutes' => (int) config('portal.exam.break_minutes', 10), 'sections' => []],
+            ['part' => 2, 'minutes' => $minutes, 'break_minutes' => 0, 'sections' => []],
+        ]];
+    }
+
+    public function partMinutes(int $part): int
+    {
+        foreach ($this->structure()['parts'] as $row) {
+            if ((int) $row['part'] === $part) {
+                return (int) $row['minutes'];
+            }
+        }
+
+        return (int) config('portal.exam.minutes_per_part', 70);
+    }
+
+    /** The break between part 1 and part 2. */
+    public function breakMinutes(): int
+    {
+        foreach ($this->structure()['parts'] as $row) {
+            if ((int) $row['part'] === 1) {
+                return (int) $row['break_minutes'];
+            }
+        }
+
+        return (int) config('portal.exam.break_minutes', 10);
+    }
+
+    /** Most points this attempt can earn, from the points frozen into its questions. */
+    public function maxPoints(): int
+    {
+        return (int) $this->attemptQuestions()->get()->sum(fn (ExamAttemptQuestion $q): int => $q->maxPoints());
+    }
+
     /** 1 or 2 (the break counts as part 1 until part 2 starts). */
     public function currentPart(): int
     {
@@ -164,19 +218,20 @@ class ExamAttempt extends Model
         }
 
         if ($this->break_started_at) {
-            return $this->break_started_at->copy()->addMinutes((int) config('portal.exam.break_minutes'));
+            return $this->break_started_at->copy()->addMinutes($this->breakMinutes());
         }
 
         return $this->part_1_ends_at;
     }
 
     /**
-     * Results by profile type and by question area, from the questions frozen into this attempt.
-     * Scoring: the best answer and the worst answer are worth one point each; unanswered questions score 0.
+     * Results by profile type and by question type, from the questions frozen into
+     * this attempt. Points come from the question type (e.g. 1 for a knowledge answer, 1 + 1 for a
+     * situational best and worst). Unanswered questions score 0 but still count.
      *
      * @return array{
      *  profile: list<array{id: int, name: string, percent: int, count: int}>,
-     *  area: list<array{id: int, name: string, percent: int, count: int}>
+     *  type: list<array{id: int, name: string, percent: int, count: int}>
      * }
      */
     public function breakdown(): array
@@ -184,20 +239,21 @@ class ExamAttempt extends Model
         $rows = $this->attemptQuestions()->with('response')->get()->map(
             fn (ExamAttemptQuestion $aq): array => [
                 'profile' => $aq->profileTypeId(),
-                'area' => $aq->questionAreaId(),
+                'type' => $aq->questionTypeId(),
                 'points' => $aq->points(),
+                'max' => $aq->maxPoints(),
             ]
         );
 
         return [
             'profile' => $this->groupResults($rows, 'profile', 'profile_types'),
-            'area' => $this->groupResults($rows, 'area', 'question_areas'),
+            'type' => $this->groupResults($rows, 'type', 'question_types'),
         ];
     }
 
     /**
-     * @param  Collection<int, array{profile: int, area: int, points: int}>  $rows
-     * @param  'profile'|'area'  $key
+     * @param  Collection<int, array{profile: int, type: int, points: int, max: int}>  $rows
+     * @param  'profile'|'type'  $key
      * @return list<array{id: int, name: string, percent: int, count: int}>
      */
     private function groupResults(Collection $rows, string $key, string $table): array
@@ -216,10 +272,12 @@ class ExamAttempt extends Model
                 $name = $arabic ? ($ar !== '' ? $ar : $en) : ($en !== '' ? $en : $ar);
             }
 
+            $max = max(1, (int) $items->sum('max'));
+
             $groups[] = [
                 'id' => (int) $id,
                 'name' => $name,
-                'percent' => (int) round($items->sum('points') / (2 * $items->count()) * 100),
+                'percent' => (int) round($items->sum('points') / $max * 100),
                 'count' => $items->count(),
             ];
         }

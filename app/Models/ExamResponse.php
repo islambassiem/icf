@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int<0, max>|null $best_answer_option_id
+ * @property int<0, max>|null $worst_answer_option_id
+ */
 #[Fillable([
     'exam_attempt_question_id',
     'best_answer_option_id',

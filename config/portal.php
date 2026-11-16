@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 return [
-    // The exam, as described in the BRD.
+    // FALLBACK ONLY. The real exam structure (parts, minutes, break, what each part contains,
+    // points per question type) lives in the database: question_types, exam_parts, exam_part_sections.
+    // These values are used only for attempts that were started before the structure became configurable.
     'exam' => [
-        'parts' => 2,
-        'questions_per_part' => 40,
         'minutes_per_part' => 70,
         'break_minutes' => 10,
     ],

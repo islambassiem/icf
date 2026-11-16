@@ -26,8 +26,8 @@ return [
     ],
 
     'groups' => [
+        'by_type' => 'By question type',
         'by_profile' => 'By profile type',
-        'by_area' => 'By question area',
         'questions' => '{1} :count question|[2,*] :count questions',
         'weakest' => 'Lowest',
     ],
@@ -49,8 +49,11 @@ return [
             'unanswered' => 'Not answered',
         ],
         'part_q' => 'Part :part, question :n',
-        'points' => ':n of 2',
+        'points' => ':n of :max',
         'option' => 'Option',
+        'correct_answer' => 'Correct answer',
+        'your_answer' => 'Your answer',
+        'rationale' => 'Expert reasoning',
         'best_answer' => 'Best answer',
         'worst_answer' => 'Worst answer',
         'your_best' => 'Your best',

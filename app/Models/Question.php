@@ -13,8 +13,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'statement_en',
     'statement_ar',
     'exam_type_id',
-    'question_area_id',
     'profile_type_id',
+    'question_type_id',
+    'rationale_en',
+    'rationale_ar',
     'status',
 ])]
 class Question extends Model
@@ -31,19 +33,19 @@ class Question extends Model
     }
 
     /**
-     * @return BelongsTo<QuestionArea, $this>
-     */
-    public function questionArea(): BelongsTo
-    {
-        return $this->belongsTo(QuestionArea::class);
-    }
-
-    /**
      * @return BelongsTo<ProfileType, $this>
      */
     public function profileType(): BelongsTo
     {
         return $this->belongsTo(ProfileType::class);
+    }
+
+    /**
+     * @return BelongsTo<QuestionType, $this>
+     */
+    public function questionType(): BelongsTo
+    {
+        return $this->belongsTo(QuestionType::class);
     }
 
     /**

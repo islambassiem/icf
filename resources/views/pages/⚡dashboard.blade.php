@@ -1,11 +1,13 @@
 <?php
 
+use App\Exceptions\ExamNotConfiguredException;
 use App\Exceptions\InsufficientQuestionsException;
 use App\Exceptions\NoActiveSubscriptionException;
 use App\Models\ExamAttempt;
 use App\Models\ExamType;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
+use App\Services\Exams\ExamBlueprint;
 use App\Services\Exams\ExamStarter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +38,23 @@ new #[Layout('layouts::portal')] class extends Component {
     public function examTypes(): Collection
     {
         return ExamType::orderBy('id')->get();
+    }
+
+    /** The structure of the selected exam (parts, minutes, what each part contains), or null if not set up. */
+    #[Computed]
+    public function blueprint(): ?array
+    {
+        $type = $this->examTypes->firstWhere('id', $this->examTypeId);
+
+        if (! $type) {
+            return null;
+        }
+
+        try {
+            return ExamBlueprint::for($type);
+        } catch (ExamNotConfiguredException) {
+            return null;
+        }
     }
 
     /** The paid period running right now, if any. */
@@ -117,7 +136,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
         $b = $latest->breakdown();
 
-        return ($b['profile'] || $b['area']) ? $b : null;
+        return ($b['profile'] || $b['type']) ? $b : null;
     }
 
     /** Lowest profile type in the latest exam. */
@@ -179,7 +198,7 @@ new #[Layout('layouts::portal')] class extends Component {
             $this->notice = __('portal.dashboard.exam.locked');
 
             return;
-        } catch (InsufficientQuestionsException) {
+        } catch (ExamNotConfiguredException|InsufficientQuestionsException) {
             $this->notice = __('portal.dashboard.exam.unavailable');
 
             return;
@@ -217,6 +236,24 @@ new #[Layout('layouts::portal')] class extends Component {
         'failed', 'expired' => 'bg-coral/15 text-coral-deep',
         default => 'bg-lav-deep text-night',
     };
+    // What the selected exam looks like, straight from the database.
+    $blueprint = $this->blueprint;
+    $arabic = app()->getLocale() === 'ar';
+    $facts = [];
+    if ($blueprint) {
+        $partMinutes = collect($blueprint['parts'])->pluck('minutes');
+        $facts[] = __('portal.dashboard.exam.fact_parts', ['n' => count($blueprint['parts'])]);
+        foreach ($blueprint['parts'][0]['sections'] as $section) {
+            $facts[] = __('portal.dashboard.exam.fact_section', ['count' => $section['count'], 'name' => $arabic ? ($section['name_ar'] ?: $section['name_en']) : $section['name_en']]);
+        }
+        $facts[] = $partMinutes->unique()->count() === 1
+            ? __('portal.dashboard.exam.fact_minutes_each', ['n' => $partMinutes->first()])
+            : __('portal.dashboard.exam.fact_minutes_total', ['n' => $partMinutes->sum()]);
+        if ($blueprint['parts'][0]['break_minutes'] > 0) {
+            $facts[] = __('portal.dashboard.exam.fact_break', ['n' => $blueprint['parts'][0]['break_minutes']]);
+        }
+    }
+
     // Translated status text; unknown statuses fall back to a readable version of the raw value.
     $statusLabel = fn (string $group, string $key) => \Illuminate\Support\Facades\Lang::has("portal.dashboard.{$group}.status_names.{$key}")
         ? __("portal.dashboard.{$group}.status_names.{$key}")
@@ -263,8 +300,8 @@ new #[Layout('layouts::portal')] class extends Component {
     <section class="relative isolate overflow-hidden rounded-3xl bg-night p-7 text-white sm:p-9 lg:col-span-2" aria-labelledby="next-title">
         <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
             <div class="bg-grid absolute inset-0 opacity-60"></div>
-            <div class="absolute -inset-e-16 -top-16 h-72 w-72 rounded-full bg-brand/50 blur-[90px]"></div>
-            <div class="absolute -bottom-20 inset-s-1/4 h-60 w-60 rounded-full bg-mint/20 blur-[90px]"></div>
+            <div class="absolute -end-16 -top-16 h-72 w-72 rounded-full bg-brand/50 blur-[90px]"></div>
+            <div class="absolute -bottom-20 start-1/4 h-60 w-60 rounded-full bg-mint/20 blur-[90px]"></div>
         </div>
         <p class="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-xs font-bold tracking-wide text-white/85">
             <span class="h-2 w-2 rounded-full bg-mint shadow-[0_0_10px_#34F5B5]"></span>
@@ -348,7 +385,7 @@ new #[Layout('layouts::portal')] class extends Component {
                 @php $popular = (bool) ($plan->is_popular ?? false); @endphp
                 <article class="relative flex flex-col rounded-3xl p-7 {{ $popular ? 'bg-night text-white shadow-xl shadow-brand/25 ring-2 ring-brand' : 'bg-white ring-1 ring-lav-deep' }}">
                     @if ($popular)
-                        <span class="absolute -top-3 inset-s-7 rounded-full bg-linear-to-r from-brand to-mint px-3 py-1 text-xs font-extrabold text-night">{{ __('portal.dashboard.plans.popular') }}</span>
+                        <span class="absolute -top-3 start-7 rounded-full bg-linear-to-r from-brand to-mint px-3 py-1 text-xs font-extrabold text-night">{{ __('portal.dashboard.plans.popular') }}</span>
                     @endif
                     <h3 class="font-display text-xl font-bold">{{ $plan->name }}</h3>
                     <p class="mt-1 text-sm {{ $popular ? 'text-white/65' : 'text-night/55' }}">{{ trans_choice('portal.dashboard.plans.days', $plan->duration_days, ['count' => $plan->duration_days]) }}</p>
@@ -432,7 +469,7 @@ new #[Layout('layouts::portal')] class extends Component {
             </div>
 
             <ul class="mt-5 flex flex-wrap gap-2 text-xs font-bold">
-                @foreach ($list('portal.dashboard.exam.facts') as $fact)
+                @foreach ($facts as $fact)
                     <li class="rounded-full bg-lav px-3.5 py-1.5">{{ $fact }}</li>
                 @endforeach
             </ul>
@@ -441,17 +478,21 @@ new #[Layout('layouts::portal')] class extends Component {
                 @foreach ($list('portal.dashboard.exam.rules') as $rule)
                     <li class="flex items-start gap-2.5">
                         <svg viewBox="0 0 24 24" class="mt-0.5 h-4 w-4 shrink-0 text-mint-deep" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $icons['check'] }}"/></svg>
-                        {{ $rule }}
+                        {{ strtr($rule, [':minutes' => $blueprint['total_minutes'] ?? '']) }}
                     </li>
                 @endforeach
             </ul>
+
+            @if (! $blueprint)
+                <p class="mt-5 rounded-xl bg-sun/25 px-4 py-3 text-sm font-medium" role="status">{{ __('portal.dashboard.exam.unavailable') }}</p>
+            @endif
 
             @if ($notice)
                 <p class="mt-5 rounded-xl bg-sun/25 px-4 py-3 text-sm font-medium" role="status">{{ $notice }}</p>
             @endif
 
             @if ($sub)
-                <button type="button" wire:click="startExam" wire:loading.attr="disabled" wire:target="startExam" @disabled(! $examTypeId)
+                <button type="button" wire:click="startExam" wire:loading.attr="disabled" wire:target="startExam" @disabled(! $examTypeId || ! $blueprint)
                     class="mt-6 w-full rounded-xl bg-linear-to-r from-brand to-brand-deep px-6 py-4 font-bold text-white shadow-[0_10px_30px_-10px_#7C5CFF] transition hover:shadow-[0_14px_36px_-8px_#7C5CFF] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-60 sm:w-auto sm:px-10">
                     <span wire:loading.remove wire:target="startExam">{{ __('portal.dashboard.exam.start', ['type' => $this->examTypes->firstWhere('id', $examTypeId)?->name]) }}</span>
                     <span wire:loading wire:target="startExam">{{ __('portal.dashboard.exam.starting') }}</span>
@@ -471,7 +512,7 @@ new #[Layout('layouts::portal')] class extends Component {
         <h2 id="focus-title" class="font-display text-lg font-bold">{{ __('portal.dashboard.focus.title') }}</h2>
         @if ($breakdown)
             <p class="mt-1 text-sm text-night/55">{{ __('portal.dashboard.focus.lead') }}</p>
-            @foreach (['profile' => 'by_profile', 'area' => 'by_area'] as $group => $heading)
+            @foreach (['type' => 'by_type', 'profile' => 'by_profile'] as $group => $heading)
                 @if (! empty($breakdown[$group]))
                     <h3 class="mt-6 text-xs font-bold uppercase tracking-wide text-night/45">{{ __('portal.dashboard.focus.' . $heading) }}</h3>
                     <div class="mt-3 space-y-4">
@@ -534,7 +575,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
         @if ($this->attempts->isNotEmpty())
             <div class="mt-4 overflow-x-auto">
-                <table class="w-full min-w-136 text-start text-sm">
+                <table class="w-full min-w-[34rem] text-start text-sm">
                     <thead class="text-xs font-bold uppercase text-night/45">
                         <tr class="border-b border-lav-deep">
                             <th class="py-2.5 pe-3 text-start font-bold">{{ __('portal.dashboard.attempts.date') }}</th>
@@ -582,7 +623,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
         @if ($this->payments->isNotEmpty())
             <div class="mt-4 overflow-x-auto">
-                <table class="w-full min-w-136 text-start text-sm">
+                <table class="w-full min-w-[34rem] text-start text-sm">
                     <thead class="text-xs font-bold uppercase text-night/45">
                         <tr class="border-b border-lav-deep">
                             <th class="py-2.5 pe-3 text-start font-bold">{{ __('portal.dashboard.payments.date') }}</th>
@@ -617,7 +658,7 @@ new #[Layout('layouts::portal')] class extends Component {
     </section>
 
     <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand to-brand-deep p-7 text-white" aria-labelledby="help-title">
-        <div class="pointer-events-none absolute -inset-e-10 -top-10 h-40 w-40 rounded-full bg-mint/30 blur-3xl" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -end-10 -top-10 h-40 w-40 rounded-full bg-mint/30 blur-3xl" aria-hidden="true"></div>
         <h2 id="help-title" class="relative font-display text-xl font-bold">{{ __('portal.dashboard.help.title') }}</h2>
         <p class="relative mt-2 leading-relaxed text-white/80">{{ __('portal.dashboard.help.text') }}</p>
         <a href="{{ $link('contact') !== '#' ? $link('contact') : url('/contact') }}" class="relative mt-6 inline-block rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-night hover:bg-mint focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-deep">{{ __('portal.dashboard.help.cta') }}</a>
