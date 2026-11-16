@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property string $name_en
+ * @property string $name_ar
+ * @property string $description
+ */
 #[Fillable([
     'name_en',
     'name_ar',
