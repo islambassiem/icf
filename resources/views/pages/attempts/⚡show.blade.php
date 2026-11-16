@@ -141,7 +141,7 @@ new #[Layout('layouts::portal')] class extends Component {
 
     // Lowest two profile types and the lowest question area: the "where to focus" list.
     $focus = collect($breakdown['profile'])->sortBy('percent')->take(2)
-        ->merge(collect($breakdown['area'])->sortBy('percent')->take(1))
+        ->merge(collect($breakdown['type'])->sortBy('percent')->take(1))
         ->filter(fn ($g) => $g['percent'] < 80)->values();
     $weakProfileId = collect($breakdown['profile'])->sortBy('percent')->first()['id'] ?? null;
 
