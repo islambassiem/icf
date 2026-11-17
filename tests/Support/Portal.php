@@ -256,4 +256,26 @@ final class Portal
 
         return $attempt->refresh();
     }
+
+    /** A specific question of an attempt, by part and position. */
+    public static function question(ExamAttempt $attempt, int $part, int $position): ExamAttemptQuestion
+    {
+        return $attempt->attemptQuestions()->where('part_number', $part)->where('position', $position)->firstOrFail();
+    }
+
+    /** An attempt row without any questions (for list and pagination tests). */
+    public static function rawAttempt(User $user, ExamType $type, array $attributes = []): ExamAttempt
+    {
+        $subscription = $user->subscriptions()->latest('id')->first() ?? self::subscribe($user);
+
+        return ExamAttempt::query()->create($attributes + [
+            'user_id' => $user->id,
+            'subscription_id' => $subscription->id,
+            'exam_type_id' => $type->id,
+            'status' => ExamAttempt::STATUS_IN_PROGRESS,
+            'started_at' => now(),
+            'part_1_ends_at' => now()->addMinutes(70),
+            'expires_at' => now()->addMinutes(150),
+        ]);
+    }
 }
