@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'status',
     'paid_at',
     'failure_reason',
+    'created_at',
 ])]
 class Payment extends Model
 {

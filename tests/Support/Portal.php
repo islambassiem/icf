@@ -23,6 +23,8 @@ use App\Services\Exams\ExamStarter;
 use App\Support\EnumPick;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
+use Tests\TestCase;
 
 /**
  * Small builders so every test reads like a story. They use the models and query builder directly,
@@ -277,5 +279,17 @@ final class Portal
             'part_1_ends_at' => now()->addMinutes(70),
             'expires_at' => now()->addMinutes(150),
         ]);
+    }
+
+    /** Sends a webhook to the portal the way the (fake) provider does: JSON body plus a signature header. */
+    public static function webhook(TestCase $test, array $payload, ?string $signature = null, ?string $rawBody = null): TestResponse
+    {
+        $json = $rawBody ?? json_encode($payload);
+        $signature ??= hash_hmac('sha256', $json, (string) config('payments.fake.secret'));
+
+        return $test->call('POST', route('webhooks.payments'), [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $json);
     }
 }

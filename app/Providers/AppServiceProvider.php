@@ -27,8 +27,8 @@ class AppServiceProvider extends ServiceProvider
 
     private function provider(): FakeGateway
     {
-        throw_unless(
-            app()->isLocal(),
+        throw_if(
+            app()->isProduction(),
             fn (): RuntimeException => new RuntimeException(
                 'The fake payment gateway cannot be used in production.'
             ));
