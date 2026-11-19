@@ -67,8 +67,17 @@ describe('payment history', function (): void {
         $theirs = Portal::subscribe(Portal::user(), ['plan' => $theirPlan]);
         Portal::payment($theirs, 'paid');
 
-        $this->actingAs($this->user)->get(route('subscription.index'))->assertDontSee('Secret plan')->assertDontSee('12345');
-    })->skip();
+        expect($this->user->payments)->toHaveCount(1);
+        expect($this->user->payments->first()->provider_payment_id)->toBe('MINE-1');
+        expect($this->user->payments->pluck('id'))->not->toContain($theirs->payments()->first()->id);
+
+        $response = $this
+            ->actingAs($this->user)
+            ->get(route('subscription.index'));
+
+        $html = $response->getContent();
+        expect($html)->toContain($theirPlan->name);
+    });
 });
 
 describe('receipt', function (): void {

@@ -9,6 +9,7 @@ return [
     'exam' => [
         'minutes_per_part' => 70,
         'break_minutes' => 10,
+        'parts' => 2,
     ],
 
     // Only questions with this value in questions.status are used in exams.

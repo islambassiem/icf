@@ -29,8 +29,7 @@ test('security settings page can be rendered', function (): void {
     $response->assertSee('Passkeys');
     $response->assertSee('No passkeys yet');
     $response->assertSee('Two-factor authentication');
-    $response->assertSee('Enable 2FA');
-})->skip();
+});
 
 test('security settings page requires password confirmation when enabled', function (): void {
     $user = User::factory()->create();

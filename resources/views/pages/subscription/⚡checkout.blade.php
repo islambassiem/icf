@@ -45,9 +45,8 @@ new #[Layout('layouts::portal')] class extends Component {
 
 <div>
 @php
-    // $start = app(PaymentService::class)->nextStart(auth()->user());
-    $start = now();
-    $end = $start->addDays($plan->duration_days);
+    $start = app(PaymentService::class)->nextStart(auth()->user());
+    $end = $start->copy()->addDays($plan->duration_days);
     $queued = $start->greaterThan(now()->addMinute());
     $price = number_format((float) $plan->price, fmod((float) $plan->price, 1) ? 2 : 0);
     $features = is_array($f = __('portal.dashboard.plans.features')) ? $f : [];

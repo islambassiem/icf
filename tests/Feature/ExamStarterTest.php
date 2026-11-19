@@ -32,16 +32,26 @@ describe('who may start an exam', function (): void {
 
     it('refuses a user whose subscription cannot be used', function (array $attributes): void {
         $user = Portal::user();
+
+        foreach (['starts_at', 'ends_at'] as $field) {
+            if (isset($attributes[$field]) && is_int($attributes[$field])) {
+                $attributes[$field] = now()->addDays($attributes[$field]);
+            }
+        }
+
         Portal::subscribe($user, $attributes);
 
-        expect(fn () => $this->starter->start($user, $this->type))->toThrow(NoActiveSubscriptionException::class)
+        expect(fn () => $this->starter->start($user, $this->type))
+            ->toThrow(NoActiveSubscriptionException::class)
             ->and(ExamAttempt::query()->count())->toBe(0);
     })->with([
         'payment still pending' => [['status' => 'pending']],
         'payment failed' => [['status' => 'failed']],
         'canceled' => [['status' => 'canceled']],
-        // 'ended yesterday' => [['ends_at' => now()->subDay()]],
-        'not started yet' => [['starts_at' => now()->addDay(), 'ends_at' => now()->addDays(31)]],
+        'ended yesterday' => [['ends_at' => -1]],
+        'not started yet' => [
+            ['starts_at' => 1, 'ends_at' => 31],
+        ],
     ]);
 
     it('links the attempt to the subscription it was started with', function (): void {

@@ -28,7 +28,7 @@ describe('who can open the exam', function (): void {
     it('shows the first question with its type and part', function (): void {
         $this->actingAs($this->user)->get(route('exams.take', $this->attempt))
             ->assertOk()
-            // ->assertSee('Part 1 of 2')
+            ->assertSee('Part 1 of 2')
             ->assertSee('Knowledge')
             ->assertSee('Knowledge question')
             ->assertSee('Choose the ONE most accurate answer.');
@@ -36,8 +36,8 @@ describe('who can open the exam', function (): void {
 
     it('shows the question in Arabic', function (): void {
         $this->actingAs($this->user)->withSession(['locale' => 'ar'])->get(route('exams.take', $this->attempt))
-            ->assertOk();
-        // ->assertSee('الجزء 1 من 2')
+            ->assertOk()
+            ->assertSee('الجزء 1 من 2');
     });
 
     it('never sends the correct answers or the expert reasoning to the browser during the exam', function (): void {
@@ -223,8 +223,8 @@ describe('submitting a part', function (): void {
 
         ($this->open)()
             ->call('submitPart')
-            ->call('startPart2');
-        // ->assertSee('Part 2 of 2')
+            ->call('startPart2')
+            ->assertSee('Part 2 of 2');
 
         expect($this->attempt->fresh()->part_2_started_at)->not->toBeNull();
     });

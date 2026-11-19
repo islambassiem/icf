@@ -66,7 +66,7 @@ describe('what it shows', function (): void {
 
         $this->actingAs($this->user)->get(route('subscription.checkout', $this->plan))
             ->assertSee(__('Your current plan is still running, so this period starts right after it ends.'));
-    })->todo();
+    });
 
     it('says the plan starts today when nothing is running', function (): void {
         $this->actingAs($this->user)->get(route('subscription.checkout', $this->plan))

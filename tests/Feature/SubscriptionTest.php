@@ -19,6 +19,11 @@ describe('active scope', function (): void {
     });
 
     it('excludes every kind of subscription that cannot be used', function (array $attributes): void {
+        $attributes = array_map(
+            fn ($value) => $value instanceof Closure ? $value() : $value,
+            $attributes
+        );
+
         Portal::subscribe($this->user, $attributes);
 
         expect(Subscription::active()->count())->toBe(0);
@@ -27,9 +32,12 @@ describe('active scope', function (): void {
         'payment failed' => [['status' => Subscription::STATUS_FAILED]],
         'canceled' => [['status' => Subscription::STATUS_CANCELED]],
         'marked expired' => [['status' => Subscription::STATUS_EXPIRED]],
-        // 'ended yesterday' => [['ends_at' => now()->subDay()]],
-        // 'ends this very second' => [['ends_at' => now()]],
-        'starts tomorrow' => [['starts_at' => now()->addDay(), 'ends_at' => now()->addDays(31)]],
+        'ended yesterday' => [['ends_at' => fn () => Date::now()->subDay()]],
+        'ends this very second' => [['ends_at' => fn () => Date::now()]],
+        'starts tomorrow' => [[
+            'starts_at' => fn () => Date::now()->addDay(),
+            'ends_at' => fn () => Date::now()->addDays(31),
+        ]],
     ]);
 
     it('belongs to the right user', function (): void {

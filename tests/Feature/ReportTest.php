@@ -197,7 +197,7 @@ describe('progress between exams', function (): void {
             ->get(route('attempts.show', $second))
             ->assertSee('+100')
             ->assertSee('points vs your previous ACC exam');
-    })->skip();
+    });
 });
 
 describe('the report does not change when the question bank changes', function (): void {
