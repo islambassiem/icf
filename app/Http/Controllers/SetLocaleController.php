@@ -13,7 +13,7 @@ class SetLocaleController extends Controller
      */
     public function __invoke(string $locale): RedirectResponse
     {
-        abort_unless(\in_array($locale, ['en', 'ar'], true), 400);
+        abort_unless(\in_array($locale, ['en', 'ar'], true), 404);
 
         session()->put('locale', $locale);
 
