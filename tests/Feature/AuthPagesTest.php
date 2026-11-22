@@ -5,6 +5,8 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
 use Tests\Support\Portal;
 
 describe('the pages', function (): void {
@@ -52,6 +54,14 @@ describe('the pages', function (): void {
     });
 
     it('sends someone without a pending sign-in away from the two-factor page', function (): void {
+        if (Features::canManageTwoFactorAuthentication()) {
+            $this->markTestSkipped('Two factor authentication is not enabled');
+        }
+
+        if (! Route::has('two-factor.login')) {
+            $this->markTestSkipped('Two factor authentication is not enabled');
+        }
+
         $this->get(route('two-factor.login'))->assertRedirect(route('login'));
     });
 });
